@@ -29,7 +29,27 @@ export async function updateSession(request: NextRequest) {
   );
 
   // Touch the user so the session gets refreshed if it's expiring.
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const path = request.nextUrl.pathname;
+  const isProtected = path.startsWith("/admin") || path.startsWith("/judge");
+  const isAuthPage = path === "/login" || path === "/signup";
+
+  // Keep unauthenticated users out of the app.
+  if (!user && isProtected) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
+  }
+
+  // Signed-in users shouldn't see the auth pages.
+  if (user && isAuthPage) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
+    return NextResponse.redirect(url);
+  }
 
   return response;
 }
