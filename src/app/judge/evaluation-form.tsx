@@ -4,6 +4,8 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
+import { StatusBadge } from "@/components/ui/badge";
+import { Toast } from "@/components/ui/toast";
 import { saveEvaluation, type EvalState } from "./actions";
 
 type Criterion = { id: string; name: string; max_marks: number; weight: number };
@@ -12,8 +14,15 @@ function Buttons({ locked }: { locked: boolean }) {
   const { pending } = useFormStatus();
   if (locked) return null;
   return (
-    <div className="flex gap-3">
-      <Button type="submit" name="mode" value="draft" variant="outline" disabled={pending}>
+    // Full-width, stacked on mobile so both actions stay tappable at 375px.
+    <div className="flex flex-col gap-3 sm:flex-row">
+      <Button
+        type="submit"
+        name="mode"
+        value="draft"
+        variant="outline"
+        disabled={pending}
+      >
         {pending ? "Saving…" : "Save draft"}
       </Button>
       <Button
@@ -58,19 +67,25 @@ export function EvaluationForm({
       <input type="hidden" name="team_id" value={teamId} />
 
       {locked && (
-        <div className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">
-          This evaluation has been submitted and is locked.
+        <div className="flex items-center gap-3 rounded-xl border border-success/40 bg-success/10 px-4 py-3">
+          <StatusBadge status="locked" />
+          <p className="text-sm text-foreground">
+            This evaluation has been submitted and is locked.
+          </p>
         </div>
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-2">
         {criteria.map((c) => (
-          <div key={c.id} className="flex items-center justify-between gap-4">
-            <div>
+          <div
+            key={c.id}
+            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface-raised/50 px-4 py-3 transition-colors duration-150 hover:border-border-strong"
+          >
+            <div className="min-w-0">
               <Label htmlFor={`score_${c.id}`} className="mb-0">
                 {c.name}
               </Label>
-              <p className="text-xs text-muted">
+              <p className="mt-0.5 text-xs text-muted">
                 Max {c.max_marks} · weight {c.weight}
               </p>
             </div>
@@ -83,7 +98,7 @@ export function EvaluationForm({
               step="0.5"
               defaultValue={initialScores[c.id] ?? ""}
               disabled={locked}
-              className="w-28"
+              className="w-24 text-right font-display text-base font-semibold tabular-nums"
             />
           </div>
         ))}
@@ -99,10 +114,8 @@ export function EvaluationForm({
         />
       </div>
 
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
-      {state.message && (
-        <p className="text-sm text-green-600">{state.message}</p>
-      )}
+      <Toast tone="error" message={state.error} />
+      <Toast tone="success" message={state.message} />
 
       <Buttons locked={locked} />
     </form>

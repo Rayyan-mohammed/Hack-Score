@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
-import { Input, Label, Textarea } from "@/components/ui/input";
+import { Input, Label, Select, Textarea } from "@/components/ui/input";
+import { Toast } from "@/components/ui/toast";
 import { createTeam, importTeams, type FormState } from "./actions";
 
 type Hackathon = { id: string; name: string };
@@ -18,10 +19,11 @@ export function HackathonSelect({
 }) {
   const router = useRouter();
   return (
-    <select
+    <Select
+      aria-label="Select hackathon"
       value={selected ?? ""}
       onChange={(e) => router.push(`/admin/teams?h=${e.target.value}`)}
-      className="h-10 rounded-lg border border-border bg-card px-3 text-sm"
+      className="max-w-[16rem]"
     >
       <option value="" disabled>
         Select a hackathon…
@@ -31,7 +33,7 @@ export function HackathonSelect({
           {h.name}
         </option>
       ))}
-    </select>
+    </Select>
   );
 }
 
@@ -78,10 +80,8 @@ export function AddTeamForm({ hackathonId }: { hackathonId: string }) {
         <Label htmlFor="problem_statement">Problem statement</Label>
         <Textarea id="problem_statement" name="problem_statement" />
       </div>
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
-      {state.message && (
-        <p className="text-sm text-green-600">{state.message}</p>
-      )}
+      <Toast tone="error" message={state.error} />
+      <Toast tone="success" message={state.message} />
       <SubmitButton label="Add team" />
     </form>
   );
@@ -102,7 +102,7 @@ export function ImportTeamsForm({ hackathonId }: { hackathonId: string }) {
       <a
         href="/team-import-template.csv"
         download
-        className="inline-block text-sm font-medium text-primary"
+        className="inline-block text-sm font-medium text-violet-bright transition-colors duration-150 hover:text-cyan-bright"
       >
         Download template CSV
       </a>
@@ -113,10 +113,8 @@ export function ImportTeamsForm({ hackathonId }: { hackathonId: string }) {
         className="block text-sm"
         required
       />
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
-      {state.message && (
-        <p className="text-sm text-green-600">{state.message}</p>
-      )}
+      <Toast tone="error" message={state.error} />
+      <Toast tone="success" message={state.message} />
       <SubmitButton label="Import CSV" />
     </form>
   );

@@ -7,6 +7,7 @@ import { signup, type AuthState } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Toast } from "@/components/ui/toast";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -42,15 +43,13 @@ export default function SignupPage() {
             <Label htmlFor="password">Password</Label>
             <Input id="password" name="password" type="password" required />
           </div>
-          {state.error && <p className="text-sm text-red-600">{state.error}</p>}
-          {state.message && (
-            <p className="text-sm text-green-600">{state.message}</p>
-          )}
+          <Toast tone="error" message={state.error} />
+          <Toast tone="success" message={state.message} />
           <SubmitButton />
         </form>
         <p className="mt-4 text-center text-sm text-muted">
           Already have an account?{" "}
-          <Link href="/login" className="font-medium text-primary">
+          <Link href="/login" className="font-medium text-violet-bright transition-colors duration-150 hover:text-cyan-bright">
             Sign in
           </Link>
         </p>

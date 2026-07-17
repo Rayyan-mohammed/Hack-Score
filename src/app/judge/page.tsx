@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requireJudge } from "@/lib/auth";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge, LiveBadge, StatusBadge } from "@/components/ui/badge";
+import { EmptyCard, EmptyState } from "@/components/ui/states";
 
 type RoundRef = {
   id: string;
@@ -10,12 +12,6 @@ type RoundRef = {
   is_active: boolean;
   hackathon_id: string;
   hackathons: { name: string } | null;
-};
-
-const statusBadge: Record<string, string> = {
-  submitted: "bg-green-100 text-green-700",
-  draft: "bg-amber-100 text-amber-700",
-  pending: "bg-slate-100 text-slate-600",
 };
 
 export default async function JudgeDashboard() {
@@ -69,13 +65,10 @@ export default async function JudgeDashboard() {
       />
 
       {rounds.length === 0 && (
-        <Card>
-          <CardContent>
-            <p className="text-sm text-muted">
-              You haven&apos;t been assigned to any rounds yet.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyCard
+          title="No rounds assigned"
+          description="You haven't been assigned to any rounds yet. An organiser will add you to a judging round shortly."
+        />
       )}
 
       {rounds.map((round) => {
@@ -85,29 +78,32 @@ export default async function JudgeDashboard() {
         return (
           <Card key={round.id}>
             <CardHeader>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <CardTitle>
                   {round.hackathons?.name} · {round.name}
                 </CardTitle>
-                {!round.is_active && (
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-                    Inactive
-                  </span>
+                {round.is_active ? (
+                  <LiveBadge label="Active round" />
+                ) : (
+                  <Badge tone="neutral">Inactive</Badge>
                 )}
               </div>
             </CardHeader>
             <CardContent>
               {roundTeams.length === 0 ? (
-                <p className="text-sm text-muted">No teams in this event yet.</p>
+                <EmptyState
+                  title="No teams in this event yet"
+                  description="Teams will appear here once an organiser adds them."
+                />
               ) : (
-                <ul className="divide-y divide-border rounded-lg border border-border">
+                <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border">
                   {roundTeams.map((t) => {
                     const status =
                       evalMap.get(`${round.id}:${t.id}`) ?? "pending";
                     return (
                       <li
                         key={t.id}
-                        className="flex items-center justify-between px-4 py-3"
+                        className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 transition-colors duration-150 hover:bg-surface-raised/60"
                       >
                         <div>
                           <p className="font-medium">
@@ -118,14 +114,13 @@ export default async function JudgeDashboard() {
                           </p>
                         </div>
                         <div className="flex items-center gap-3">
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadge[status]}`}
-                          >
-                            {status === "pending" ? "Not started" : status}
-                          </span>
+                          <StatusBadge
+                            status={status}
+                            label={status === "pending" ? "Not started" : undefined}
+                          />
                           <Link
                             href={`/judge/rounds/${round.id}/teams/${t.id}`}
-                            className="text-sm font-medium text-primary"
+                            className="text-sm font-medium text-violet-bright transition-colors duration-150 hover:text-cyan-bright"
                           >
                             {status === "submitted" ? "View" : "Evaluate"}
                           </Link>

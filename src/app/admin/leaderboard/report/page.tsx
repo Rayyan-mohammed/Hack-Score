@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Table, THead, TH, TR, TD } from "@/components/ui/table";
+import { RankBadge } from "@/components/ui/badge";
 import {
   computeStandings,
   round1,
@@ -58,9 +59,11 @@ export default async function ReportPage({
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">{hackathon.name}</h1>
+          <h1 className="font-display text-2xl font-bold tracking-tight">
+            {hackathon.name}
+          </h1>
           <p className="text-sm text-muted">
             {hackathon.venue ? `${hackathon.venue} · ` : ""}
             {hackathon.start_date ?? ""}
@@ -78,12 +81,15 @@ export default async function ReportPage({
           {winners.map((s, i) => (
             <div
               key={s.team.id}
-              className="rounded-xl border border-border bg-card p-4"
+              className="rounded-2xl border border-border bg-surface p-4"
             >
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">
-                {medals[i]}
-              </p>
-              <p className="mt-1 font-semibold">{s.team.name}</p>
+              <div className="flex items-center gap-2">
+                <RankBadge rank={i + 1} />
+                <p className="text-xs font-medium tracking-wide text-muted uppercase">
+                  {medals[i]}
+                </p>
+              </div>
+              <p className="mt-2 font-display font-semibold">{s.team.name}</p>
               <p className="text-sm text-muted">
                 {s.team.team_code} · {round1(s.overall)} pts
               </p>
@@ -93,7 +99,9 @@ export default async function ReportPage({
       )}
 
       <div>
-        <h2 className="mb-2 text-lg font-semibold">Full rankings</h2>
+        <h2 className="mb-2 font-display text-lg font-semibold">
+          Full rankings
+        </h2>
         <Table>
           <THead>
             <TR>
@@ -101,28 +109,34 @@ export default async function ReportPage({
               <TH>Team</TH>
               <TH>Track</TH>
               {rounds.map((rd) => (
-                <TH key={rd.id}>{rd.name}</TH>
+                <TH key={rd.id} className="text-right">
+                  {rd.name}
+                </TH>
               ))}
-              <TH>Overall</TH>
+              <TH className="text-right">Overall</TH>
             </TR>
           </THead>
           <tbody>
             {standings.map((s, i) => (
               <TR key={s.team.id}>
-                <TD className="font-medium">{i + 1}</TD>
+                <TD>
+                  <RankBadge rank={i + 1} />
+                </TD>
                 <TD>
                   <span className="font-mono text-xs text-muted">
                     {s.team.team_code}
                   </span>{" "}
-                  {s.team.name}
+                  <span className="font-medium">{s.team.name}</span>
                 </TD>
                 <TD className="text-muted">{s.team.track ?? "—"}</TD>
                 {rounds.map((rd) => (
-                  <TD key={rd.id} className="text-muted">
+                  <TD key={rd.id} className="text-right text-muted tabular-nums">
                     {round1(s.roundAverages[rd.id] ?? 0)}
                   </TD>
                 ))}
-                <TD className="font-semibold">{round1(s.overall)}</TD>
+                <TD className="text-right font-display font-semibold tabular-nums">
+                  {round1(s.overall)}
+                </TD>
               </TR>
             ))}
           </tbody>

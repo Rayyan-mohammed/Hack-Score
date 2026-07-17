@@ -6,15 +6,19 @@ export function Table({
   ...props
 }: React.TableHTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-border bg-card">
-      <table className={cn("w-full text-sm", className)} {...props} />
+    // Horizontal scroll keeps wide score tables usable at 375px without squashing columns.
+    <div className="-mx-px overflow-x-auto rounded-2xl border border-border bg-surface">
+      <table
+        className={cn("w-full min-w-max text-sm", className)}
+        {...props}
+      />
     </div>
   );
 }
 
 export function THead({ children }: { children: React.ReactNode }) {
   return (
-    <thead className="border-b border-border bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-muted">
+    <thead className="border-b border-border bg-surface-raised text-left text-xs font-medium tracking-wide text-muted uppercase">
       {children}
     </thead>
   );
@@ -24,7 +28,12 @@ export function TH({
   className,
   ...props
 }: React.ThHTMLAttributes<HTMLTableCellElement>) {
-  return <th className={cn("px-4 py-3", className)} {...props} />;
+  return (
+    <th
+      className={cn("px-4 py-3 font-medium whitespace-nowrap", className)}
+      {...props}
+    />
+  );
 }
 
 export function TR({
@@ -33,7 +42,10 @@ export function TR({
 }: React.HTMLAttributes<HTMLTableRowElement>) {
   return (
     <tr
-      className={cn("border-b border-border last:border-0", className)}
+      className={cn(
+        "border-b border-border transition-colors duration-150 last:border-0 hover:bg-surface-raised/60",
+        className,
+      )}
       {...props}
     />
   );
@@ -43,5 +55,10 @@ export function TD({
   className,
   ...props
 }: React.TdHTMLAttributes<HTMLTableCellElement>) {
-  return <td className={cn("px-4 py-3", className)} {...props} />;
+  return (
+    <td
+      className={cn("px-4 py-3 text-foreground", className)}
+      {...props}
+    />
+  );
 }

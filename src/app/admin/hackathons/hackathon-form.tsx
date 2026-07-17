@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
+import { Toast } from "@/components/ui/toast";
 import type { FormState } from "./actions";
 
 type Values = {
@@ -98,7 +99,7 @@ export function HackathonForm({
           />
         </div>
       </div>
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+      <Toast tone="error" message={state.error} />
       <SubmitButton label={submitLabel} />
     </form>
   );

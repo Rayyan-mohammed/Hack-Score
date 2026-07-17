@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
+import { Toast } from "@/components/ui/toast";
 import { createRound, type FormState } from "./round-actions";
 
 type Round = {
@@ -53,7 +54,7 @@ export function RoundsSection({
               </div>
               <Link
                 href={`/admin/hackathons/${hackathonId}/rounds/${r.id}`}
-                className="text-sm font-medium text-primary"
+                className="text-sm font-medium text-violet-bright transition-colors duration-150 hover:text-cyan-bright"
               >
                 Rubric & settings
               </Link>
@@ -81,9 +82,7 @@ export function RoundsSection({
           />
         </div>
         <AddButton />
-        {state.error && (
-          <p className="w-full text-sm text-red-600">{state.error}</p>
-        )}
+        <Toast tone="error" message={state.error} className="w-full" />
       </form>
     </div>
   );

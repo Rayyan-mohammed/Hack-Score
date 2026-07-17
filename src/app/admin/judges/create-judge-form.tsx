@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
+import { Toast } from "@/components/ui/toast";
 import { createJudge, type FormState } from "./actions";
 
 function SubmitButton() {
@@ -36,10 +37,8 @@ export function CreateJudgeForm() {
           <Input id="password" name="password" type="text" required />
         </div>
       </div>
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
-      {state.message && (
-        <p className="text-sm text-green-600">{state.message}</p>
-      )}
+      <Toast tone="error" message={state.error} />
+      <Toast tone="success" message={state.message} />
       <SubmitButton />
     </form>
   );

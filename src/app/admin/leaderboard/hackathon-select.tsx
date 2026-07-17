@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { Select } from "@/components/ui/input";
 
 export function HackathonSelect({
   hackathons,
@@ -11,10 +12,11 @@ export function HackathonSelect({
 }) {
   const router = useRouter();
   return (
-    <select
+    <Select
+      aria-label="Select hackathon"
       value={selected ?? ""}
       onChange={(e) => router.push(`/admin/leaderboard?h=${e.target.value}`)}
-      className="h-10 rounded-lg border border-border bg-card px-3 text-sm"
+      className="max-w-[16rem]"
     >
       <option value="" disabled>
         Select a hackathon…
@@ -24,6 +26,6 @@ export function HackathonSelect({
           {h.name}
         </option>
       ))}
-    </select>
+    </Select>
   );
 }

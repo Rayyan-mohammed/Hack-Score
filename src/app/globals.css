@@ -1,41 +1,405 @@
 @import "tailwindcss";
 
+/* ---------------------------------------------------------------------------
+   HackScore design tokens — "Bold Hackathon Energy"
+   Tailwind v4 is CSS-first: this @theme block IS the config (no tailwind.config.js).
+   Every token here generates utilities (bg-surface, shadow-glow-violet, font-display…).
+   Never hardcode hex values in components — add a token here instead.
+--------------------------------------------------------------------------- */
+
+@theme {
+  /* Base surfaces — near-black, cool-toned */
+  --color-background: #0b0e14;
+  --color-surface: #12161f;
+  --color-surface-raised: #171c27;
+  --color-surface-overlay: #1b2130;
+
+  /* Text */
+  --color-foreground: #e8ecf4; /* 14.8:1 on background */
+  --color-muted: #9ba6bc; /* 7.3:1 on background — passes AA body text */
+  --color-subtle: #7d8898; /* 5.3:1 on background, 5.0:1 on surface — still AA */
+
+  /* Lines */
+  --color-border: #232936;
+  --color-border-strong: #2e3646;
+
+  /* Primary accent ramp: electric violet */
+  --color-violet: #7c3aed;
+  --color-violet-bright: #a78bfa; /* text-safe violet on dark: 6.9:1 */
+  --color-violet-deep: #5b21b6;
+
+  /* Secondary accent ramp: cyan */
+  --color-cyan: #06b6d4;
+  --color-cyan-bright: #22d3ee; /* text-safe + focus rings: 9.4:1 */
+  --color-cyan-deep: #0e7490;
+
+  /* Alert / live / badge accents */
+  --color-pink: #f472b6;
+  --color-orange: #fb923c;
+
+  /* Semantic status — each is text-safe on dark surfaces */
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-danger: #f87171;
+  --color-info: #38bdf8;
+
+  /* Podium ranks */
+  --color-gold: #f59e0b;
+  --color-silver: #94a3b8;
+  --color-bronze: #b45309;
+
+  /* Primary token pair (kept for API compatibility with existing components) */
+  --color-primary: #7c3aed;
+  --color-primary-foreground: #ffffff;
+  --color-card: #12161f;
+
+  /* Typography */
+  --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  /* Radii */
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.5rem;
+
+  /* Glow + elevation shadows (accent color at low opacity) */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  --shadow-lift: 0 2px 4px rgba(0, 0, 0, 0.4), 0 16px 40px -12px rgba(0, 0, 0, 0.7);
+  --shadow-glow-violet: 0 0 0 1px rgba(124, 58, 237, 0.25),
+    0 8px 30px -6px rgba(124, 58, 237, 0.35);
+  --shadow-glow-cyan: 0 0 0 1px rgba(6, 182, 212, 0.25),
+    0 8px 30px -6px rgba(6, 182, 212, 0.35);
+  --shadow-glow-pink: 0 0 0 1px rgba(244, 114, 182, 0.25),
+    0 8px 30px -6px rgba(244, 114, 182, 0.35);
+  --shadow-glow-danger: 0 0 0 1px rgba(248, 113, 113, 0.25),
+    0 8px 30px -6px rgba(248, 113, 113, 0.3);
+  --shadow-glow-soft: 0 4px 20px -4px rgba(124, 58, 237, 0.2);
+
+  /* Motion */
+  --animate-pulse-glow: pulse-glow 2s ease-in-out infinite;
+  --animate-gradient-shift: gradient-shift 6s ease infinite;
+  --animate-fade-in-up: fade-in-up 0.5s ease-out both;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+}
+
+/* Reusable gradient tokens — referenced via the utilities below, not inline hexes */
 :root {
-  --background: #f7f8fa;
-  --foreground: #0f172a;
-  --card: #ffffff;
-  --border: #e5e7eb;
-  --muted: #64748b;
-  --primary: #4f46e5;
-  --primary-foreground: #ffffff;
+  --gradient-accent: linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%);
+  --gradient-accent-soft: linear-gradient(
+    135deg,
+    rgba(124, 58, 237, 0.16) 0%,
+    rgba(6, 182, 212, 0.16) 100%
+  );
+  --gradient-hot: linear-gradient(135deg, #f472b6 0%, #fb923c 100%);
+  --gradient-gold: linear-gradient(135deg, #fde68a 0%, #f59e0b 100%);
+  --gradient-silver: linear-gradient(135deg, #f1f5f9 0%, #94a3b8 100%);
+  --gradient-bronze: linear-gradient(135deg, #e8a87c 0%, #b45309 100%);
+  --gradient-line: linear-gradient(
+    90deg,
+    transparent 0%,
+    #7c3aed 25%,
+    #06b6d4 75%,
+    transparent 100%
+  );
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-border: var(--border);
-  --color-muted: var(--muted);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ---------------------------------------------------------------------------
+   Gradient + effect utilities
+--------------------------------------------------------------------------- */
+
+@utility bg-gradient-accent {
+  background-image: var(--gradient-accent);
+}
+@utility bg-gradient-accent-soft {
+  background-image: var(--gradient-accent-soft);
+}
+@utility bg-gradient-hot {
+  background-image: var(--gradient-hot);
+}
+@utility bg-gradient-gold {
+  background-image: var(--gradient-gold);
+}
+@utility bg-gradient-silver {
+  background-image: var(--gradient-silver);
+}
+@utility bg-gradient-bronze {
+  background-image: var(--gradient-bronze);
+}
+@utility bg-gradient-line {
+  background-image: var(--gradient-line);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
+/* Gradient text — pairs with bg-gradient-* */
+@utility text-gradient-accent {
+  background-image: var(--gradient-accent);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
 }
+@utility text-gradient-hot {
+  background-image: var(--gradient-hot);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+/* Glassmorphism for overlays/modals */
+@utility glass {
+  background-color: rgba(23, 28, 39, 0.72);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+@utility glass-scrim {
+  background-color: rgba(11, 14, 20, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Hover lift + glow for cards */
+@utility hover-lift {
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease,
+    border-color 200ms ease;
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-glow-soft), var(--shadow-lift);
+    border-color: var(--color-border-strong);
+  }
+}
+
+/* Animated gradient underline for nav links */
+@utility nav-underline {
+  position: relative;
+  &::after {
+    content: "";
+    position: absolute;
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: 0.25rem;
+    height: 2px;
+    border-radius: 2px;
+    background-image: var(--gradient-accent);
+    background-size: 200% 100%;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 200ms ease;
+  }
+  &:hover::after,
+  &[data-active="true"]::after {
+    transform: scaleX(1);
+    animation: gradient-shift 6s ease infinite;
+  }
+}
+
+/* Scroll-driven fade-in-up. Progressive enhancement: browsers with scroll-driven
+   animation support tie it to the element entering the viewport; everywhere else
+   it degrades to a plain on-mount fade. No JS, so it stays a server component. */
+@utility reveal-on-view {
+  animation: fade-in-up 0.5s ease-out both;
+  @supports (animation-timeline: view()) {
+    animation-timeline: view();
+    animation-range: entry 0% entry 60%;
+  }
+}
+
+/* Gradient border ring (top border line, cards, footer separator) */
+@utility border-gradient-top {
+  border-top: 1px solid transparent;
+  border-image: var(--gradient-line) 1;
+}
+
+/* ---------------------------------------------------------------------------
+   Keyframes
+--------------------------------------------------------------------------- */
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(244, 114, 182, 0.5);
+  }
+  50% {
+    opacity: 0.85;
+    box-shadow: 0 0 0 6px rgba(244, 114, 182, 0);
+  }
+}
+
+@keyframes gradient-shift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Base
+--------------------------------------------------------------------------- */
+
+@layer base {
+  html {
+    color-scheme: dark;
+    scrollbar-color: var(--color-border-strong) transparent;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Large, confident headings in the geometric display face */
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  /* Accent focus ring, visible on every dark surface */
+  :focus-visible {
+    outline: 2px solid var(--color-cyan-bright);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Native controls render dark rather than white */
+  select,
+  option,
+  input,
+  textarea {
+    color-scheme: dark;
+  }
+
+  ::selection {
+    background-color: rgba(124, 58, 237, 0.4);
+    color: var(--color-foreground);
+  }
+
+  /* Themed scrollbars */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-background);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-border-strong);
+    border-radius: 999px;
+    border: 2px solid var(--color-background);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-violet);
+  }
+  ::-webkit-scrollbar-corner {
+    background: var(--color-background);
+  }
+}
+
+/* Respect reduced-motion: kill the ambient loops, keep state changes */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .hover-lift:hover {
+    transform: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Print — the PDF report must stay light-on-white regardless of the dark theme
+--------------------------------------------------------------------------- */
 
 @media print {
   .no-print {
     display: none !important;
   }
-  body {
-    background: #ffffff;
+
+  html {
+    color-scheme: light;
   }
+
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+
   main {
     padding: 0 !important;
+  }
+
+  /* Force every themed surface back to print-safe values */
+  [class*="bg-surface"],
+  [class*="bg-card"],
+  [class*="bg-background"] {
+    background: #ffffff !important;
+  }
+
+  [class*="text-foreground"] {
+    color: #0f172a !important;
+  }
+
+  [class*="text-muted"],
+  [class*="text-subtle"] {
+    color: #475569 !important;
+  }
+
+  [class*="border-border"] {
+    border-color: #cbd5e1 !important;
+  }
+
+  /* Gradient text has transparent fill — restore ink for print */
+  [class*="text-gradient"] {
+    background-image: none !important;
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+  }
+
+  /* Podium medals carry meaning in the results report, so force them to print
+     rather than being dropped as decorative backgrounds. Rank digits are dark
+     on the gradient, so they stay legible even on a mono printer. */
+  [class*="bg-gradient-gold"],
+  [class*="bg-gradient-silver"],
+  [class*="bg-gradient-bronze"] {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+    color: #0b0e14 !important;
+    border: 1px solid #94a3b8;
+  }
+
+  [class*="shadow-"] {
+    box-shadow: none !important;
   }
 }

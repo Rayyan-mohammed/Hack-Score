@@ -1,7 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  StatCard,
+} from "@/components/ui/card";
 import { Table, THead, TH, TR, TD } from "@/components/ui/table";
+import { LiveBadge, RankBadge, TrackBadge } from "@/components/ui/badge";
+import { EmptyCard, EmptyState } from "@/components/ui/states";
 import {
   computeStandings,
   round1,
@@ -106,26 +114,41 @@ export default async function LeaderboardPage({
       />
 
       {list.length === 0 ? (
-        <Card>
-          <CardContent>
-            <p className="text-sm text-muted">Create a hackathon first.</p>
-          </CardContent>
-        </Card>
+        <EmptyCard
+          title="No hackathons yet"
+          description="Create a hackathon first, then add rounds, teams and judges to see live standings here."
+        />
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-3">
-            {[
-              { label: "Teams", value: teams.length },
-              { label: "Submitted evaluations", value: submittedCount },
-              { label: "Completion", value: `${completion}%` },
-            ].map((s) => (
-              <Card key={s.label}>
-                <CardContent>
-                  <p className="text-sm text-muted">{s.label}</p>
-                  <p className="mt-1 text-2xl font-semibold">{s.value}</p>
-                </CardContent>
-              </Card>
-            ))}
+            <StatCard label="Teams" value={teams.length} />
+            <StatCard label="Submitted evaluations" value={submittedCount} />
+            <Card interactive className="relative overflow-hidden">
+              <div
+                aria-hidden="true"
+                className="absolute inset-x-0 top-0 h-px bg-gradient-line opacity-60"
+              />
+              <CardContent>
+                <p className="text-sm text-muted">Completion</p>
+                <p className="mt-1 font-display text-3xl font-bold tracking-tight text-foreground">
+                  {completion}%
+                </p>
+                <div
+                  role="progressbar"
+                  aria-valuenow={completion}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label="Evaluation completion"
+                  className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-surface-raised"
+                >
+                  <div
+                    className="h-full rounded-full bg-gradient-accent transition-[width] duration-500 ease-out"
+                    // Dynamic width — the one place a style attribute is unavoidable.
+                    style={{ width: `${completion}%` }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           <Card>
@@ -138,12 +161,16 @@ export default async function LeaderboardPage({
           </Card>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="flex items-center justify-between gap-3">
               <CardTitle>Rankings</CardTitle>
+              <LiveBadge />
             </CardHeader>
             <CardContent>
               {standings.length === 0 ? (
-                <p className="text-sm text-muted">No teams yet.</p>
+                <EmptyState
+                  title="No teams yet"
+                  description="Add teams to this hackathon to start ranking them."
+                />
               ) : (
                 <Table>
                   <THead>
@@ -152,28 +179,39 @@ export default async function LeaderboardPage({
                       <TH>Team</TH>
                       <TH>Track</TH>
                       {rounds.map((r) => (
-                        <TH key={r.id}>{r.name}</TH>
+                        <TH key={r.id} className="text-right">
+                          {r.name}
+                        </TH>
                       ))}
-                      <TH>Overall</TH>
+                      <TH className="text-right">Overall</TH>
                     </TR>
                   </THead>
                   <tbody>
                     {standings.map((s, i) => (
                       <TR key={s.team.id}>
-                        <TD className="font-medium">{i + 1}</TD>
+                        <TD>
+                          <RankBadge rank={i + 1} />
+                        </TD>
                         <TD>
                           <span className="font-mono text-xs text-muted">
                             {s.team.team_code}
                           </span>{" "}
-                          {s.team.name}
+                          <span className="font-medium">{s.team.name}</span>
                         </TD>
-                        <TD className="text-muted">{s.team.track ?? "—"}</TD>
+                        <TD>
+                          <TrackBadge track={s.team.track} />
+                        </TD>
                         {rounds.map((r) => (
-                          <TD key={r.id} className="text-muted">
+                          <TD
+                            key={r.id}
+                            className="text-right text-muted tabular-nums"
+                          >
                             {round1(s.roundAverages[r.id] ?? 0)}
                           </TD>
                         ))}
-                        <TD className="font-semibold">{round1(s.overall)}</TD>
+                        <TD className="text-right font-display font-semibold tabular-nums">
+                          {round1(s.overall)}
+                        </TD>
                       </TR>
                     ))}
                   </tbody>

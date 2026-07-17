@@ -3,6 +3,8 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, THead, TH, TR, TD } from "@/components/ui/table";
+import { TrackBadge } from "@/components/ui/badge";
+import { EmptyCard, EmptyState } from "@/components/ui/states";
 import {
   HackathonSelect,
   AddTeamForm,
@@ -57,13 +59,10 @@ export default async function TeamsPage({
       />
 
       {list.length === 0 ? (
-        <Card>
-          <CardContent>
-            <p className="text-sm text-muted">
-              Create a hackathon first, then come back to add teams.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyCard
+          title="No hackathons yet"
+          description="Create a hackathon first, then come back to add teams."
+        />
       ) : (
         <>
           <Card>
@@ -74,7 +73,10 @@ export default async function TeamsPage({
             </CardHeader>
             <CardContent>
               {rows.length === 0 ? (
-                <p className="text-sm text-muted">No teams yet.</p>
+                <EmptyState
+                  title="No teams yet"
+                  description="Add a team below, or import a whole roster from CSV."
+                />
               ) : (
                 <Table>
                   <THead>
@@ -89,14 +91,23 @@ export default async function TeamsPage({
                   <tbody>
                     {rows.map((t) => (
                       <TR key={t.id}>
-                        <TD className="font-mono text-xs">{t.team_code}</TD>
+                        <TD className="font-mono text-xs text-muted">
+                          {t.team_code}
+                        </TD>
                         <TD className="font-medium">{t.name}</TD>
                         <TD className="text-muted">{t.college ?? "—"}</TD>
-                        <TD className="text-muted">{t.track ?? "—"}</TD>
+                        <TD>
+                          <TrackBadge track={t.track} />
+                        </TD>
                         <TD className="text-right">
                           <form action={deleteTeam}>
                             <input type="hidden" name="id" value={t.id} />
-                            <Button variant="ghost" size="sm" type="submit">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              type="submit"
+                              className="hover:bg-danger/10 hover:text-danger"
+                            >
                               Remove
                             </Button>
                           </form>

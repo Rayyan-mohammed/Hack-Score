@@ -1,9 +1,24 @@
-import Link from "next/link";
 import { logout } from "@/app/(auth)/actions";
 import { Button } from "@/components/ui/button";
+import { Brand } from "@/components/brand";
+import { MobileNav, NavLinks } from "@/components/nav";
 import type { Profile } from "@/lib/auth";
 
 export type NavItem = { href: string; label: string };
+
+function UserCard({ profile }: { profile: Profile | null }) {
+  const roleLabel = profile?.role === "admin" ? "Admin" : "Judge";
+  return (
+    <div className="rounded-xl border border-border bg-surface-raised px-3 py-2">
+      <p className="truncate text-sm font-medium text-foreground">
+        {profile?.full_name || profile?.email}
+      </p>
+      <p className="mt-0.5 font-display text-xs font-medium tracking-wide text-violet-bright uppercase">
+        {roleLabel}
+      </p>
+    </div>
+  );
+}
 
 export function AppShell({
   profile,
@@ -17,40 +32,29 @@ export function AppShell({
   const roleLabel = profile?.role === "admin" ? "Admin" : "Judge";
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="no-print hidden w-60 shrink-0 flex-col border-r border-border bg-card md:flex">
-        <div className="flex h-14 items-center gap-2 border-b border-border px-5">
-          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
-            HS
-          </span>
-          <span className="font-semibold">HackScore</span>
+    <div className="flex flex-1">
+      {/* Sidebar — collapses into the drawer below md */}
+      <aside className="no-print hidden w-60 shrink-0 flex-col border-r border-border bg-surface md:flex">
+        <div className="flex h-14 items-center border-b border-border px-5">
+          <Brand />
         </div>
         <nav className="flex-1 space-y-1 p-3">
-          {nav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-foreground"
-            >
-              {item.label}
-            </Link>
-          ))}
+          <NavLinks nav={nav} />
         </nav>
-        <div className="border-t border-border p-3">
-          <p className="truncate px-2 text-sm font-medium">
-            {profile?.full_name || profile?.email}
-          </p>
-          <p className="px-2 text-xs text-muted">{roleLabel}</p>
+        <div className="p-3">
+          <UserCard profile={profile} />
         </div>
       </aside>
 
-      <div className="flex flex-1 flex-col">
-        <header className="no-print flex h-14 items-center justify-between border-b border-border bg-card px-6">
-          <span className="text-sm font-medium text-muted md:hidden">
-            HackScore
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="no-print sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-md sm:px-6">
+          <MobileNav nav={nav} footer={<UserCard profile={profile} />} />
+          <span className="md:hidden">
+            <Brand />
           </span>
+
           <div className="ml-auto flex items-center gap-3">
-            <span className="text-sm text-muted">
+            <span className="hidden text-sm text-muted sm:inline">
               {profile?.email} · {roleLabel}
             </span>
             <form action={logout}>
@@ -60,7 +64,8 @@ export function AppShell({
             </form>
           </div>
         </header>
-        <main className="flex-1 p-6">{children}</main>
+
+        <main className="flex-1 p-4 sm:p-6">{children}</main>
       </div>
     </div>
   );

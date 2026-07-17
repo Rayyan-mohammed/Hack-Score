@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, StatCard } from "@/components/ui/card";
+import { PageHeader } from "@/components/page-header";
 
 async function count(table: string, filter?: [string, string]) {
   const supabase = await createClient();
@@ -26,24 +27,23 @@ export default async function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
-        <p className="text-sm text-muted">
-          Welcome to the HackScore admin panel.
-        </p>
-      </div>
+      <PageHeader
+        title="Dashboard"
+        description="Welcome to the HackScore admin panel."
+      />
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
-          <Card key={stat.label}>
-            <CardContent>
-              <p className="text-sm text-muted">{stat.label}</p>
-              <p className="mt-1 text-2xl font-semibold">{stat.value}</p>
-            </CardContent>
-          </Card>
+          <StatCard key={stat.label} label={stat.label} value={stat.value} />
         ))}
       </div>
-      <Card>
-        <CardContent>
+
+      <Card className="relative overflow-hidden">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-16 -right-16 h-48 w-48 rounded-full bg-violet/10 blur-3xl"
+        />
+        <CardContent className="relative">
           <p className="text-sm text-muted">
             Start by creating a hackathon, then add rounds, rubrics, teams and
             judges.

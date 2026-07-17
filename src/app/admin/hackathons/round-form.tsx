@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
+import { Toast } from "@/components/ui/toast";
 import { updateRound, type FormState } from "./round-actions";
 
 type Round = {
@@ -81,7 +82,7 @@ export function RoundForm({ round }: { round: Round }) {
         />
         Active round (judges can evaluate)
       </label>
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+      <Toast tone="error" message={state.error} />
       <SaveButton />
     </form>
   );

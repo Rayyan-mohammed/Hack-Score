@@ -38,7 +38,7 @@ export default async function RoundDetailPage({
         action={
           <Link
             href={`/admin/hackathons/${id}`}
-            className="text-sm font-medium text-primary"
+            className="text-sm font-medium text-violet-bright transition-colors duration-150 hover:text-cyan-bright"
           >
             ← Back to hackathon
           </Link>
@@ -67,15 +67,19 @@ export default async function RoundDetailPage({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="border-danger/30">
         <CardHeader>
-          <CardTitle>Danger zone</CardTitle>
+          <CardTitle className="text-danger">Danger zone</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-wrap items-center justify-between gap-4">
+          <p className="text-sm text-muted">
+            Deleting this round also removes its rubric and every evaluation
+            recorded against it.
+          </p>
           <form action={deleteRound}>
             <input type="hidden" name="id" value={round.id} />
             <input type="hidden" name="hackathon_id" value={id} />
-            <Button variant="danger" type="submit">
+            <Button variant="destructive" type="submit">
               Delete round
             </Button>
           </form>

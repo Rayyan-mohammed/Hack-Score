@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requireJudge } from "@/lib/auth";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TrackBadge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/states";
 import { EvaluationForm } from "../../../../evaluation-form";
 
 export default async function EvaluatePage({
@@ -62,11 +64,19 @@ export default async function EvaluatePage({
         title={team.name}
         description={`${hackName ?? ""} · ${round.name}`}
         action={
-          <Link href="/judge" className="text-sm font-medium text-primary">
+          <Link
+            href="/judge"
+            className="text-sm font-medium text-violet-bright transition-colors duration-150 hover:text-cyan-bright"
+          >
             ← Back
           </Link>
         }
       />
+
+      <div className="-mt-2 flex flex-wrap items-center gap-2">
+        <span className="font-mono text-xs text-muted">{team.team_code}</span>
+        <TrackBadge track={team.track} />
+      </div>
 
       {team.problem_statement && (
         <Card>
@@ -85,9 +95,10 @@ export default async function EvaluatePage({
         </CardHeader>
         <CardContent>
           {(criteria ?? []).length === 0 ? (
-            <p className="text-sm text-muted">
-              This round has no rubric criteria yet.
-            </p>
+            <EmptyState
+              title="No rubric criteria yet"
+              description="An organiser needs to add scoring criteria to this round before it can be judged."
+            />
           ) : (
             <EvaluationForm
               roundId={roundId}

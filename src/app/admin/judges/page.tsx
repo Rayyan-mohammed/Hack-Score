@@ -3,6 +3,8 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, THead, TH, TR, TD } from "@/components/ui/table";
+import { Label, Select } from "@/components/ui/input";
+import { EmptyState } from "@/components/ui/states";
 import { CreateJudgeForm } from "./create-judge-form";
 import { assignJudge, unassignJudge } from "./actions";
 
@@ -62,13 +64,27 @@ export default async function JudgesPage() {
         </CardHeader>
         <CardContent>
           {judgeList.length === 0 ? (
-            <p className="text-sm text-muted">No judges yet.</p>
+            <EmptyState
+              title="No judges yet"
+              description="Create a judge account above to get started."
+            />
           ) : (
-            <ul className="divide-y divide-border rounded-lg border border-border">
+            <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border">
               {judgeList.map((j) => (
-                <li key={j.id} className="px-4 py-3">
-                  <p className="font-medium">{j.full_name || "—"}</p>
-                  <p className="text-xs text-muted">{j.email}</p>
+                <li
+                  key={j.id}
+                  className="flex items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-surface-raised/60"
+                >
+                  <span
+                    aria-hidden="true"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-accent-soft font-display text-xs font-semibold text-violet-bright"
+                  >
+                    {(j.full_name || j.email || "?").charAt(0).toUpperCase()}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{j.full_name || "—"}</p>
+                    <p className="truncate text-xs text-muted">{j.email}</p>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -82,42 +98,36 @@ export default async function JudgesPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {judgeList.length === 0 || roundList.length === 0 ? (
-            <p className="text-sm text-muted">
-              You need at least one judge and one round first.
-            </p>
+            <EmptyState
+              title="Nothing to assign yet"
+              description="You need at least one judge and one round first."
+            />
           ) : (
-            <form action={assignJudge} className="flex flex-wrap items-end gap-3">
-              <div>
-                <label className="mb-1.5 block text-sm font-medium">Judge</label>
-                <select
-                  name="judge_id"
-                  required
-                  className="h-10 rounded-lg border border-border bg-card px-3 text-sm"
-                >
+            <form
+              action={assignJudge}
+              className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end"
+            >
+              <div className="min-w-0 flex-1">
+                <Label htmlFor="judge_id">Judge</Label>
+                <Select id="judge_id" name="judge_id" required>
                   {judgeList.map((j) => (
                     <option key={j.id} value={j.id}>
                       {j.full_name || j.email}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium">Round</label>
-                <select
-                  name="round_id"
-                  required
-                  className="h-10 rounded-lg border border-border bg-card px-3 text-sm"
-                >
+              <div className="min-w-0 flex-1">
+                <Label htmlFor="round_id">Round</Label>
+                <Select id="round_id" name="round_id" required>
                   {roundList.map((r) => (
                     <option key={r.id} value={r.id}>
                       {r.hackathons?.name} · {r.name}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
-              <Button type="submit" size="sm">
-                Assign
-              </Button>
+              <Button type="submit">Assign</Button>
             </form>
           )}
 

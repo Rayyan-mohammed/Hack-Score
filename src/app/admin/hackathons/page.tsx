@@ -2,8 +2,9 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Table, THead, TH, TR, TD } from "@/components/ui/table";
+import { Badge, StatusBadge } from "@/components/ui/badge";
+import { EmptyCard } from "@/components/ui/states";
 
 type Hackathon = {
   id: string;
@@ -36,13 +37,15 @@ export default async function HackathonsPage() {
       />
 
       {rows.length === 0 ? (
-        <Card>
-          <CardContent>
-            <p className="text-sm text-muted">
-              No hackathons yet. Create your first one to get started.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyCard
+          title="No hackathons yet"
+          description="Create your first one to get started."
+          action={
+            <Link href="/admin/hackathons/new">
+              <Button>New hackathon</Button>
+            </Link>
+          }
+        />
       ) : (
         <Table>
           <THead>
@@ -64,20 +67,16 @@ export default async function HackathonsPage() {
                   {h.end_date ? ` → ${h.end_date}` : ""}
                 </TD>
                 <TD>
-                  <span
-                    className={
-                      h.is_active
-                        ? "rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700"
-                        : "rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600"
-                    }
-                  >
-                    {h.is_active ? "Active" : "Inactive"}
-                  </span>
+                  {h.is_active ? (
+                    <StatusBadge status="active" />
+                  ) : (
+                    <Badge tone="neutral">Inactive</Badge>
+                  )}
                 </TD>
                 <TD className="text-right">
                   <Link
                     href={`/admin/hackathons/${h.id}`}
-                    className="text-sm font-medium text-primary"
+                    className="text-sm font-medium text-violet-bright transition-colors duration-150 hover:text-cyan-bright"
                   >
                     Manage
                   </Link>

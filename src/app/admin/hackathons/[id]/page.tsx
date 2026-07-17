@@ -58,14 +58,18 @@ export default async function HackathonDetailPage({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="border-danger/30">
         <CardHeader>
-          <CardTitle>Danger zone</CardTitle>
+          <CardTitle className="text-danger">Danger zone</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-wrap items-center justify-between gap-4">
+          <p className="text-sm text-muted">
+            Deleting this hackathon also removes its rounds, teams and every
+            evaluation recorded against it.
+          </p>
           <form action={deleteHackathon}>
             <input type="hidden" name="id" value={hackathon.id} />
-            <Button variant="danger" type="submit">
+            <Button variant="destructive" type="submit">
               Delete hackathon
             </Button>
           </form>
