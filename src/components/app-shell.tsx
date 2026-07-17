@@ -18,7 +18,7 @@ export function AppShell({
 
   return (
     <div className="flex min-h-screen">
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-card md:flex">
+      <aside className="no-print hidden w-60 shrink-0 flex-col border-r border-border bg-card md:flex">
         <div className="flex h-14 items-center gap-2 border-b border-border px-5">
           <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
             HS
@@ -45,7 +45,7 @@ export function AppShell({
       </aside>
 
       <div className="flex flex-1 flex-col">
-        <header className="flex h-14 items-center justify-between border-b border-border bg-card px-6">
+        <header className="no-print flex h-14 items-center justify-between border-b border-border bg-card px-6">
           <span className="text-sm font-medium text-muted md:hidden">
             HackScore
           </span>

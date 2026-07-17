@@ -9,6 +9,8 @@ import {
   type RoundRow,
   type TeamRow,
 } from "@/lib/leaderboard";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { HackathonSelect } from "./hackathon-select";
 import { TopTeamsChart } from "./top-teams-chart";
 
@@ -82,7 +84,23 @@ export default async function LeaderboardPage({
         description="Rankings computed from submitted evaluations."
         action={
           list.length > 0 ? (
-            <HackathonSelect hackathons={list} selected={selected} />
+            <div className="flex items-center gap-2">
+              <HackathonSelect hackathons={list} selected={selected} />
+              {selected && (
+                <>
+                  <a href={`/admin/leaderboard/export?h=${selected}`}>
+                    <Button variant="outline" size="sm">
+                      Export CSV
+                    </Button>
+                  </a>
+                  <Link href={`/admin/leaderboard/report?h=${selected}`}>
+                    <Button variant="outline" size="sm">
+                      Report (PDF)
+                    </Button>
+                  </Link>
+                </>
+              )}
+            </div>
           ) : undefined
         }
       />
