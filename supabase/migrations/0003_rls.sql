@@ -33,12 +33,14 @@ declare t text;
 begin
   foreach t in array array['hackathons','rounds','rubric_criteria','teams','team_members']
   loop
-    execute format('drop policy if exists %I_select on %I', t, t);
+    execute format('drop policy if exists %I on %I', t || '_select', t);
     execute format(
-      'create policy %I_select on %I for select using (auth.uid() is not null)', t, t);
-    execute format('drop policy if exists %I_write on %I', t, t);
+      'create policy %I on %I for select using (auth.uid() is not null)',
+      t || '_select', t);
+    execute format('drop policy if exists %I on %I', t || '_write', t);
     execute format(
-      'create policy %I_write on %I for all using (public.is_admin()) with check (public.is_admin())', t, t);
+      'create policy %I on %I for all using (public.is_admin()) with check (public.is_admin())',
+      t || '_write', t);
   end loop;
 end $$;
 
