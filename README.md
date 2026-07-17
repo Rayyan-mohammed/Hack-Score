@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# HackScore
 
-## Getting Started
+Smart hackathon evaluation and judging platform. Admins configure events,
+rounds and rubrics; judges score assigned teams; the leaderboard and reports
+are computed automatically.
 
-First, run the development server:
+Built with **Next.js (App Router)** and **Supabase** (Postgres, Auth, RLS).
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Features
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Email/password auth with Admin and Judge roles (RBAC enforced by row level security)
+- Admin panel: hackathons, rounds, rubric builder, teams (manual + CSV import), judge accounts and round assignment
+- Judge dashboard: dynamic scorecards bound to each round's rubric, save draft / submit, scores lock after submit
+- Leaderboard with per-round and overall rankings, plus a top-teams chart
+- Export results to CSV and a printable PDF report
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Getting started
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Create a project at [supabase.com](https://supabase.com).
+2. In the Supabase **SQL Editor**, run the files in `supabase/migrations/` in
+   order (`0001`, `0002`, `0003`). See `supabase/README.md` for details.
+3. Copy `.env.example` to `.env.local` and fill in your values:
 
-## Learn More
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=...
+   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
+   SUPABASE_SECRET_KEY=...
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+4. Install and run:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+   ```bash
+   npm install
+   npm run dev
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+5. Open [http://localhost:3000](http://localhost:3000), sign up, then make
+   yourself an admin:
 
-## Deploy on Vercel
+   ```sql
+   update profiles set role = 'admin' where email = 'you@example.com';
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Tech stack
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Next.js 16, React 19, TypeScript
+- Tailwind CSS v4
+- Supabase (`@supabase/ssr`, `@supabase/supabase-js`)
+- Recharts
+
+## Deploy
+
+Frontend deploys to Vercel; the database is hosted on Supabase. Set the same
+environment variables in your Vercel project settings.

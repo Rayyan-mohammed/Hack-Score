@@ -1,6 +1,29 @@
+import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent } from "@/components/ui/card";
 
-export default function AdminDashboard() {
+async function count(table: string, filter?: [string, string]) {
+  const supabase = await createClient();
+  let query = supabase.from(table).select("*", { count: "exact", head: true });
+  if (filter) query = query.eq(filter[0], filter[1]);
+  const { count } = await query;
+  return count ?? 0;
+}
+
+export default async function AdminDashboard() {
+  const [hackathons, teams, judges, submitted] = await Promise.all([
+    count("hackathons"),
+    count("teams"),
+    count("profiles", ["role", "judge"]),
+    count("evaluations", ["status", "submitted"]),
+  ]);
+
+  const stats = [
+    { label: "Hackathons", value: hackathons },
+    { label: "Teams", value: teams },
+    { label: "Judges", value: judges },
+    { label: "Submitted evaluations", value: submitted },
+  ];
+
   return (
     <div className="space-y-6">
       <div>
@@ -10,12 +33,7 @@ export default function AdminDashboard() {
         </p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          { label: "Hackathons", value: "—" },
-          { label: "Teams", value: "—" },
-          { label: "Judges", value: "—" },
-          { label: "Evaluations", value: "—" },
-        ].map((stat) => (
+        {stats.map((stat) => (
           <Card key={stat.label}>
             <CardContent>
               <p className="text-sm text-muted">{stat.label}</p>
