@@ -99,6 +99,13 @@ export function ImportTeamsForm({ hackathonId }: { hackathonId: string }) {
         CSV headers: team_code, name, college, track, mentor,
         problem_statement, members (names separated by <code>;</code>).
       </p>
+      <a
+        href="/team-import-template.csv"
+        download
+        className="inline-block text-sm font-medium text-primary"
+      >
+        Download template CSV
+      </a>
       <input
         type="file"
         name="file"
