@@ -14,7 +14,7 @@ create or replace function public.seed_user(
 ) returns uuid
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   uid uuid;
