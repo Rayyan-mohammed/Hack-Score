@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HackathonForm } from "../hackathon-form";
 import { updateHackathon, deleteHackathon } from "../actions";
+import { RoundsSection } from "../rounds-section";
 
 export default async function HackathonDetailPage({
   params,
@@ -21,6 +22,12 @@ export default async function HackathonDetailPage({
     .single();
 
   if (!hackathon) notFound();
+
+  const { data: rounds } = await supabase
+    .from("rounds")
+    .select("id, name, is_active, starts_at, ends_at")
+    .eq("hackathon_id", id)
+    .order("sort_order", { ascending: true });
 
   return (
     <div className="space-y-6">
@@ -39,6 +46,15 @@ export default async function HackathonDetailPage({
             values={hackathon}
             submitLabel="Save changes"
           />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Rounds</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <RoundsSection hackathonId={hackathon.id} rounds={rounds ?? []} />
         </CardContent>
       </Card>
 
