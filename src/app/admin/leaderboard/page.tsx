@@ -22,6 +22,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { HackathonSelect } from "./hackathon-select";
 import { TopTeamsChart } from "./top-teams-chart";
+import { setResultsPublished } from "./actions";
 
 export default async function LeaderboardPage({
   searchParams,
@@ -33,12 +34,13 @@ export default async function LeaderboardPage({
 
   const { data: hackathons } = await supabase
     .from("hackathons")
-    .select("id, name")
+    .select("id, name, results_published")
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
   const list = hackathons ?? [];
   const selected = h || list[0]?.id;
+  const selectedHk = list.find((x) => x.id === selected);
 
   let teams: TeamRow[] = [];
   let rounds: RoundRow[] = [];
@@ -134,12 +136,38 @@ export default async function LeaderboardPage({
                       Report (PDF)
                     </Button>
                   </Link>
+                  <form action={setResultsPublished}>
+                    <input type="hidden" name="hackathon_id" value={selected} />
+                    <input
+                      type="hidden"
+                      name="publish"
+                      value={selectedHk?.results_published ? "false" : "true"}
+                    />
+                    <Button
+                      size="sm"
+                      variant={
+                        selectedHk?.results_published ? "outline" : "primary"
+                      }
+                    >
+                      {selectedHk?.results_published
+                        ? "Unpublish results"
+                        : "Publish results"}
+                    </Button>
+                  </form>
                 </>
               )}
             </div>
           ) : undefined
         }
       />
+
+      {selectedHk?.results_published && (
+        <div className="flex items-center gap-2 rounded-xl border border-success/40 bg-success/10 px-4 py-3 text-sm text-foreground">
+          <Badge tone="success">Published</Badge>
+          Teams can view their results via their private links (shown on each
+          team’s detail page).
+        </div>
+      )}
 
       {list.length === 0 ? (
         <EmptyCard
