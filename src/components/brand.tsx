@@ -8,8 +8,12 @@ import { cn } from "@/lib/utils";
  * floating as an invisible smudge. object-contain keeps the 3.1:1 crest
  * undistorted at any height.
  *
- * size="md" — navbar/shell: h-9 on mobile, h-11 on desktop.
+ * size="md" — navbar/shell: h-11 on mobile, h-14 on desktop.
  * size="lg" — standalone auth screen: a touch larger, still logo-only.
+ *
+ * Note: the crest is ~3.1:1, so h-14 (~174px wide + chip) is near the widest
+ * the 240px sidebar can hold without clipping — don't grow past this here
+ * without also widening the sidebar.
  */
 export function Brand({
   className,
@@ -18,7 +22,7 @@ export function Brand({
   className?: string;
   size?: "md" | "lg";
 }) {
-  const logoHeight = size === "lg" ? "h-10 sm:h-12" : "h-9 md:h-11";
+  const logoHeight = size === "lg" ? "h-12 sm:h-14" : "h-11 md:h-14";
 
   return (
     <span

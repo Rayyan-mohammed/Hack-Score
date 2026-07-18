@@ -55,7 +55,7 @@ export function AppShell({
       <div className="flex flex-1">
         {/* Sidebar — collapses into the drawer below md */}
         <aside className="no-print hidden w-60 shrink-0 flex-col border-r border-border bg-surface md:flex">
-          <div className="flex h-16 items-center border-b border-border px-5">
+          <div className="flex h-20 items-center border-b border-border px-5">
             <Brand />
           </div>
           <nav className="flex-1 space-y-1 p-3">
@@ -67,7 +67,7 @@ export function AppShell({
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="no-print sticky top-0 z-40 flex h-16 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-md sm:px-6">
+          <header className="no-print sticky top-0 z-40 flex h-16 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-md sm:px-6 md:h-20">
             {/* Brand on the left (mobile only — the sidebar carries it on desktop) */}
             <span className="md:hidden">
               <Brand />
