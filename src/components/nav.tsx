@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -97,48 +98,57 @@ export function MobileNav({
         </svg>
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex">
-          <button
-            type="button"
-            aria-label="Close navigation menu"
-            onClick={() => setOpen(false)}
-            className="glass-scrim absolute inset-0 cursor-default"
-          />
-          <aside
-            role="dialog"
-            aria-modal="true"
-            aria-label="Navigation"
-            className="glass relative flex w-72 max-w-[85vw] animate-fade-in-up flex-col border-r border-border shadow-lift"
-          >
-            <div className="flex h-14 items-center justify-between border-b border-border px-4">
-              <Brand />
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                aria-label="Close navigation menu"
-                className="rounded-lg p-1.5 text-muted transition-colors duration-150 hover:bg-surface-raised hover:text-foreground"
-              >
-                <svg
-                  viewBox="0 0 16 16"
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.75"
-                  strokeLinecap="round"
-                  aria-hidden="true"
+      {/* The drawer is portalled to <body>. The header uses backdrop-blur, which
+          creates a containing block for fixed-position descendants — rendering
+          the drawer here would clip it to the header's height. Portalling out
+          restores true viewport-fixed positioning. */}
+      {open &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div className="fixed inset-0 z-50 flex md:hidden">
+            <button
+              type="button"
+              aria-label="Close navigation menu"
+              onClick={() => setOpen(false)}
+              className="glass-scrim absolute inset-0 cursor-default"
+            />
+            <aside
+              role="dialog"
+              aria-modal="true"
+              aria-label="Navigation"
+              className="glass relative flex h-full w-72 max-w-[85vw] animate-fade-in-up flex-col border-r border-border shadow-lift"
+            >
+              <div className="flex h-16 items-center justify-between border-b border-border px-4">
+                <Brand />
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  aria-label="Close navigation menu"
+                  className="rounded-lg p-1.5 text-muted transition-colors duration-150 hover:bg-surface-raised hover:text-foreground"
                 >
-                  <path d="m4 4 8 8M12 4l-8 8" />
-                </svg>
-              </button>
-            </div>
-            <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-              <NavLinks nav={nav} onNavigate={() => setOpen(false)} />
-            </nav>
-            {footer && <div className="border-t border-border p-3">{footer}</div>}
-          </aside>
-        </div>
-      )}
+                  <svg
+                    viewBox="0 0 16 16"
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.75"
+                    strokeLinecap="round"
+                    aria-hidden="true"
+                  >
+                    <path d="m4 4 8 8M12 4l-8 8" />
+                  </svg>
+                </button>
+              </div>
+              <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+                <NavLinks nav={nav} onNavigate={() => setOpen(false)} />
+              </nav>
+              {footer && (
+                <div className="border-t border-border p-3">{footer}</div>
+              )}
+            </aside>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

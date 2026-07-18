@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Footer } from "@/components/footer";
 
 // Geometric display face for headings, brand and rank numerals.
 const spaceGrotesk = Space_Grotesk({
@@ -39,8 +38,9 @@ export default function RootLayout({
       className={`${spaceGrotesk.variable} ${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col bg-background text-foreground">
-        <div className="flex flex-1 flex-col">{children}</div>
-        <Footer />
+        {/* Footer is rendered per-layout (AppShell = minimal, auth = full) so
+            each route selects its own variant. */}
+        {children}
       </body>
     </html>
   );
