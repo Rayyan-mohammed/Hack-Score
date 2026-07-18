@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, requireAdmin } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 
 export type FormState = { error?: string };
 
@@ -62,10 +63,45 @@ export async function updateHackathon(
   return {};
 }
 
+// Soft delete: mark deleted_at instead of removing rows, so the hackathon and
+// everything under it can be restored from Trash within 30 days. A snapshot of
+// the row is written to the audit log as a lightweight pre-delete backup.
 export async function deleteHackathon(formData: FormData) {
+  const { user } = await requireAdmin();
   const id = String(formData.get("id") ?? "");
   const supabase = await createClient();
-  await supabase.from("hackathons").delete().eq("id", id);
+
+  const { data: snapshot } = await supabase
+    .from("hackathons")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  // Cascade the soft delete to children so a hidden hackathon's rounds/teams
+  // also disappear from judge views. Restore reverses this (see trash actions).
+  const now = new Date().toISOString();
+  await Promise.all([
+    supabase.from("hackathons").update({ deleted_at: now }).eq("id", id),
+    supabase
+      .from("rounds")
+      .update({ deleted_at: now })
+      .eq("hackathon_id", id)
+      .is("deleted_at", null),
+    supabase
+      .from("teams")
+      .update({ deleted_at: now })
+      .eq("hackathon_id", id)
+      .is("deleted_at", null),
+  ]);
+
+  await logAudit({
+    actorId: user.id,
+    action: "hackathon.delete",
+    entity: "hackathon",
+    entityId: id,
+    meta: { name: snapshot?.name, snapshot },
+  });
+
   revalidatePath("/admin/hackathons");
   redirect("/admin/hackathons");
 }

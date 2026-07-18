@@ -6,6 +6,9 @@ async function count(table: string, filter?: [string, string]) {
   const supabase = await createClient();
   let query = supabase.from(table).select("*", { count: "exact", head: true });
   if (filter) query = query.eq(filter[0], filter[1]);
+  // Soft-deleted hackathons/teams shouldn't inflate the dashboard counts.
+  if (table === "hackathons" || table === "teams")
+    query = query.is("deleted_at", null);
   const { count } = await query;
   return count ?? 0;
 }

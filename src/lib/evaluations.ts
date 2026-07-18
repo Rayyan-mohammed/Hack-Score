@@ -78,6 +78,7 @@ export async function getTeamEvaluationBreakdown(
     .from("rounds")
     .select("id, name")
     .eq("hackathon_id", team.hackathon_id)
+    .is("deleted_at", null)
     .order("sort_order", { ascending: true });
 
   const rounds = roundsData ?? [];

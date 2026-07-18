@@ -28,11 +28,13 @@ export async function GET(request: NextRequest) {
     supabase
       .from("teams")
       .select("id, team_code, name, track, college")
-      .eq("hackathon_id", hackathonId),
+      .eq("hackathon_id", hackathonId)
+      .is("deleted_at", null),
     supabase
       .from("rounds")
       .select("id, name")
       .eq("hackathon_id", hackathonId)
+      .is("deleted_at", null)
       .order("sort_order", { ascending: true }),
   ]);
 

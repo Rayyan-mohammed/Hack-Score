@@ -31,6 +31,7 @@ export default async function JudgesPage() {
       supabase
         .from("rounds")
         .select("id, name, hackathons(name)")
+        .is("deleted_at", null)
         .order("created_at", { ascending: false }),
       supabase
         .from("round_judges")

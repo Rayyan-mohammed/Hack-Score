@@ -45,7 +45,9 @@ export async function getJudgeProgress(judgeId: string): Promise<JudgeProgress> 
   // Rounds this judge is assigned to, with hackathon context.
   const { data: assignmentData } = await supabase
     .from("round_judges")
-    .select("round_id, rounds(id, name, hackathon_id, hackathons(name))")
+    .select(
+      "round_id, rounds(id, name, hackathon_id, deleted_at, hackathons(name))",
+    )
     .eq("judge_id", judgeId);
 
   type Assignment = {
@@ -54,11 +56,12 @@ export async function getJudgeProgress(judgeId: string): Promise<JudgeProgress> 
       id: string;
       name: string;
       hackathon_id: string;
+      deleted_at: string | null;
       hackathons: { name: string } | null;
     } | null;
   };
   const assignments = ((assignmentData as unknown as Assignment[]) ?? []).filter(
-    (a) => a.rounds,
+    (a) => a.rounds && !a.rounds.deleted_at,
   );
 
   if (assignments.length === 0) {

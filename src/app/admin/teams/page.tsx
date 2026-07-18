@@ -31,6 +31,7 @@ export default async function TeamsPage({
   const { data: hackathons } = await supabase
     .from("hackathons")
     .select("id, name")
+    .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
   const list = hackathons ?? [];
@@ -41,6 +42,7 @@ export default async function TeamsPage({
         .from("teams")
         .select("id, team_code, name, college, track")
         .eq("hackathon_id", selected)
+        .is("deleted_at", null)
         .order("team_code", { ascending: true })
     : { data: [] as Team[] };
 

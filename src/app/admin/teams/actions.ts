@@ -66,9 +66,30 @@ export async function createTeam(
 }
 
 export async function deleteTeam(formData: FormData) {
+  const { user } = await requireAdmin();
   const id = String(formData.get("id") ?? "");
   const supabase = await createClient();
-  await supabase.from("teams").delete().eq("id", id);
+
+  const { data: snapshot } = await supabase
+    .from("teams")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  // Soft delete — recoverable from Trash for 30 days.
+  await supabase
+    .from("teams")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id);
+
+  await logAudit({
+    actorId: user.id,
+    action: "team.delete",
+    entity: "team",
+    entityId: id,
+    meta: { name: snapshot?.name, snapshot },
+  });
+
   revalidatePath("/admin/teams");
 }
 

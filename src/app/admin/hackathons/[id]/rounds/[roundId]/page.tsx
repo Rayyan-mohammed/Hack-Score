@@ -2,8 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/page-header";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DeleteConfirm } from "@/components/delete-confirm";
 import { RoundForm } from "../../../round-form";
 import { RubricBuilder } from "../../../rubric-builder";
 import { ParticipantsForm } from "../../../participants-form";
@@ -22,6 +22,7 @@ export default async function RoundDetailPage({
     .from("rounds")
     .select("*")
     .eq("id", roundId)
+    .is("deleted_at", null)
     .single();
 
   if (!round) notFound();
@@ -163,18 +164,14 @@ export default async function RoundDetailPage({
         <CardHeader>
           <CardTitle className="text-danger">Danger zone</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-wrap items-center justify-between gap-4">
-          <p className="text-sm text-muted">
-            Deleting this round also removes its rubric and every evaluation
-            recorded against it.
-          </p>
-          <form action={deleteRound}>
-            <input type="hidden" name="id" value={round.id} />
-            <input type="hidden" name="hackathon_id" value={id} />
-            <Button variant="destructive" type="submit">
-              Delete round
-            </Button>
-          </form>
+        <CardContent>
+          <DeleteConfirm
+            action={deleteRound}
+            fields={{ id: round.id, hackathon_id: id }}
+            confirmText={round.name}
+            label="Delete round"
+            description="This hides the round with its rubric and evaluations. It's recoverable from Trash for 30 days."
+          />
         </CardContent>
       </Card>
     </div>

@@ -32,11 +32,13 @@ export default async function ReportPage({
     supabase
       .from("teams")
       .select("id, team_code, name, track, college")
-      .eq("hackathon_id", h),
+      .eq("hackathon_id", h)
+      .is("deleted_at", null),
     supabase
       .from("rounds")
       .select("id, name")
       .eq("hackathon_id", h)
+      .is("deleted_at", null)
       .order("sort_order", { ascending: true }),
   ]);
 

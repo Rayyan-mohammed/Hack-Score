@@ -20,6 +20,7 @@ export default async function HackathonsPage() {
   const { data: hackathons } = await supabase
     .from("hackathons")
     .select("id, name, venue, start_date, end_date, is_active")
+    .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
   const rows = (hackathons as Hackathon[]) ?? [];

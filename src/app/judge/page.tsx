@@ -12,6 +12,7 @@ type RoundRef = {
   name: string;
   is_active: boolean;
   hackathon_id: string;
+  deleted_at: string | null;
   hackathons: { name: string } | null;
 };
 
@@ -21,13 +22,16 @@ export default async function JudgeDashboard() {
 
   const { data: assignments } = await supabase
     .from("round_judges")
-    .select("rounds(id, name, is_active, hackathon_id, hackathons(name))")
+    .select(
+      "rounds(id, name, is_active, hackathon_id, deleted_at, hackathons(name))",
+    )
     .eq("judge_id", user!.id);
 
   const rounds =
     (assignments
       ?.map((a) => (a as unknown as { rounds: RoundRef }).rounds)
-      .filter(Boolean) as RoundRef[]) ?? [];
+      // Drop assignments whose round has been soft-deleted.
+      .filter((r) => r && !r.deleted_at) as RoundRef[]) ?? [];
 
   const roundIds = rounds.map((r) => r.id);
   const hackathonIds = [...new Set(rounds.map((r) => r.hackathon_id))];

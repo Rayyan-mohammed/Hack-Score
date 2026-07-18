@@ -94,10 +94,31 @@ export async function updateRound(
 }
 
 export async function deleteRound(formData: FormData) {
+  const { user } = await requireAdmin();
   const id = String(formData.get("id") ?? "");
   const hackathon_id = String(formData.get("hackathon_id") ?? "");
   const supabase = await createClient();
-  await supabase.from("rounds").delete().eq("id", id);
+
+  const { data: snapshot } = await supabase
+    .from("rounds")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  // Soft delete — recoverable from Trash for 30 days.
+  await supabase
+    .from("rounds")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id);
+
+  await logAudit({
+    actorId: user.id,
+    action: "round.delete",
+    entity: "round",
+    entityId: id,
+    meta: { name: snapshot?.name, snapshot },
+  });
+
   revalidatePath(`/admin/hackathons/${hackathon_id}`);
   redirect(`/admin/hackathons/${hackathon_id}`);
 }
