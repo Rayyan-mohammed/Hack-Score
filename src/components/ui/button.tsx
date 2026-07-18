@@ -29,7 +29,8 @@ const variants: Record<Variant, string> = {
 
 const sizes: Record<Size, string> = {
   sm: "h-8 px-3 text-sm",
-  md: "h-10 px-4 text-sm",
+  // 44px tap target on mobile (per WCAG/touch guidance), denser on desktop.
+  md: "h-11 px-4 text-sm sm:h-10",
   lg: "h-11 px-6 text-base",
 };
 

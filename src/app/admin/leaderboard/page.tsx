@@ -193,10 +193,17 @@ export default async function LeaderboardPage({
                           <RankBadge rank={i + 1} />
                         </TD>
                         <TD>
-                          <span className="font-mono text-xs text-muted">
-                            {s.team.team_code}
-                          </span>{" "}
-                          <span className="font-medium">{s.team.name}</span>
+                          <Link
+                            href={`/admin/leaderboard/${s.team.id}`}
+                            className="group inline-flex items-baseline gap-1.5 rounded-md transition-colors hover:text-violet-bright focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-bright"
+                          >
+                            <span className="font-mono text-xs text-muted group-hover:text-violet-bright">
+                              {s.team.team_code}
+                            </span>
+                            <span className="font-medium underline-offset-4 group-hover:underline">
+                              {s.team.name}
+                            </span>
+                          </Link>
                         </TD>
                         <TD>
                           <TrackBadge track={s.team.track} />

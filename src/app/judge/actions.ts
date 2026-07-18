@@ -23,6 +23,24 @@ export async function saveEvaluation(
 
   const supabase = await createClient();
 
+  // Enforce the lock server-side. RLS already blocks writes to a submitted
+  // evaluation (evaluations_update / evaluation_scores_write both require
+  // status = 'draft'), but we check explicitly so a locked row fails fast with
+  // a clear message instead of a generic RLS error. Only an admin can reopen.
+  const { data: existing } = await supabase
+    .from("evaluations")
+    .select("status")
+    .eq("round_id", round_id)
+    .eq("team_id", team_id)
+    .eq("judge_id", user!.id)
+    .maybeSingle();
+
+  if (existing?.status === "submitted")
+    return {
+      error:
+        "This evaluation is already submitted and locked. Ask an admin to reopen it if a change is needed.",
+    };
+
   // Pull the rubric so we can validate score ranges.
   const { data: criteria } = await supabase
     .from("rubric_criteria")

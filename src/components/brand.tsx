@@ -1,6 +1,16 @@
 import { cn } from "@/lib/utils";
 
-/** HackScore wordmark + gradient monogram. Shared by the shell and auth screens. */
+/**
+ * Brand mark — the STME crest alone (no wordmark).
+ *
+ * The supplied logo is dark ink on transparent, so on the dark navbar it needs
+ * a light backing to be legible; it sits on a small white chip rather than
+ * floating as an invisible smudge. object-contain keeps the 3.1:1 crest
+ * undistorted at any height.
+ *
+ * size="md" — navbar/shell: h-7 on mobile, h-8 on desktop (per spec).
+ * size="lg" — standalone auth screen: slightly larger, still logo-only.
+ */
 export function Brand({
   className,
   size = "md",
@@ -8,25 +18,21 @@ export function Brand({
   className?: string;
   size?: "md" | "lg";
 }) {
+  const logoHeight = size === "lg" ? "h-9" : "h-7 md:h-8";
+
   return (
-    <span className={cn("flex items-center gap-2", className)}>
-      <span
-        aria-hidden="true"
-        className={cn(
-          "flex items-center justify-center rounded-lg bg-gradient-accent font-display font-bold text-white shadow-glow-soft",
-          size === "lg" ? "h-9 w-9 text-sm" : "h-7 w-7 text-xs",
-        )}
-      >
-        HS
-      </span>
-      <span
-        className={cn(
-          "font-display font-semibold tracking-tight text-foreground",
-          size === "lg" ? "text-lg" : "text-base",
-        )}
-      >
-        Hack<span className="text-gradient-accent">Score</span>
-      </span>
+    <span
+      className={cn(
+        "inline-flex max-w-full items-center rounded-md bg-white px-2 py-1 ring-1 ring-white/10",
+        className,
+      )}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/logo.png"
+        alt="STME — School of Technology Management & Engineering"
+        className={cn("w-auto max-w-full object-contain", logoHeight)}
+      />
     </span>
   );
 }

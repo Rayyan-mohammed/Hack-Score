@@ -8,11 +8,14 @@ const field =
   "focus-visible:border-violet focus-visible:shadow-glow-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-bright " +
   "disabled:cursor-not-allowed disabled:opacity-50";
 
+// 44px tap target on mobile, denser (40px) from the sm breakpoint up.
+const fieldHeight = "h-11 sm:h-10";
+
 export const Input = React.forwardRef<
   HTMLInputElement,
   React.InputHTMLAttributes<HTMLInputElement>
 >(({ className, ...props }, ref) => (
-  <input ref={ref} className={cn(field, "h-10", className)} {...props} />
+  <input ref={ref} className={cn(field, fieldHeight, className)} {...props} />
 ));
 Input.displayName = "Input";
 
@@ -32,7 +35,11 @@ export const Select = React.forwardRef<
   HTMLSelectElement,
   React.SelectHTMLAttributes<HTMLSelectElement>
 >(({ className, ...props }, ref) => (
-  <select ref={ref} className={cn(field, "h-10 pr-8", className)} {...props} />
+  <select
+    ref={ref}
+    className={cn(field, fieldHeight, "pr-8", className)}
+    {...props}
+  />
 ));
 Select.displayName = "Select";
 

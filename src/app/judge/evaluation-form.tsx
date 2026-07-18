@@ -10,33 +10,71 @@ import { saveEvaluation, type EvalState } from "./actions";
 
 type Criterion = { id: string; name: string; max_marks: number; weight: number };
 
+function LockWarning() {
+  return (
+    <div className="flex items-start gap-2.5 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3">
+      <svg
+        viewBox="0 0 20 20"
+        className="mt-px h-5 w-5 shrink-0 text-warning"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M10 7.5v3.5M10 14h.01M8.6 3.2 1.7 15a1.6 1.6 0 0 0 1.4 2.4h13.8a1.6 1.6 0 0 0 1.4-2.4L11.4 3.2a1.6 1.6 0 0 0-2.8 0Z" />
+      </svg>
+      <p className="text-sm text-warning">
+        <span className="font-semibold">Heads up:</span> once you submit, your
+        marks will be locked and cannot be changed.
+      </p>
+    </div>
+  );
+}
+
 function Buttons({ locked }: { locked: boolean }) {
   const { pending } = useFormStatus();
-  if (locked) return null;
+
+  // Locked evaluations show a disabled, unmistakable state instead of actions.
+  if (locked)
+    return (
+      <Button type="button" disabled className="w-full sm:w-auto">
+        Submitted &amp; locked
+      </Button>
+    );
+
   return (
-    // Full-width, stacked on mobile so both actions stay tappable at 375px.
-    <div className="flex flex-col gap-3 sm:flex-row">
-      <Button
-        type="submit"
-        name="mode"
-        value="draft"
-        variant="outline"
-        disabled={pending}
-      >
-        {pending ? "Saving…" : "Save draft"}
-      </Button>
-      <Button
-        type="submit"
-        name="mode"
-        value="submit"
-        disabled={pending}
-        onClick={(e) => {
-          if (!confirm("Submit and lock this evaluation? You can't edit it after."))
-            e.preventDefault();
-        }}
-      >
-        Submit
-      </Button>
+    <div className="space-y-4">
+      <LockWarning />
+      {/* Full-width, stacked on mobile so both actions stay tappable at 375px. */}
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <Button
+          type="submit"
+          name="mode"
+          value="draft"
+          variant="outline"
+          disabled={pending}
+        >
+          {pending ? "Saving…" : "Save draft"}
+        </Button>
+        <Button
+          type="submit"
+          name="mode"
+          value="submit"
+          disabled={pending}
+          onClick={(e) => {
+            if (
+              !confirm(
+                "Submit and lock this evaluation? You can't edit it after.",
+              )
+            )
+              e.preventDefault();
+          }}
+        >
+          Submit &amp; lock
+        </Button>
+      </div>
     </div>
   );
 }
