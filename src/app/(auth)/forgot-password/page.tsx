@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import { login, type AuthState } from "../actions";
+import { requestReset, type ForgotState } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,19 +13,24 @@ function SubmitButton() {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" className="w-full" disabled={pending}>
-      {pending ? "Signing in…" : "Sign in"}
+      {pending ? "Sending…" : "Send reset link"}
     </Button>
   );
 }
 
-export default function LoginPage() {
-  const [state, formAction] = useActionState<AuthState, FormData>(login, {});
+export default function ForgotPasswordPage() {
+  const [state, formAction] = useActionState<ForgotState, FormData>(
+    requestReset,
+    {},
+  );
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Welcome back</CardTitle>
-        <p className="mt-1 text-sm text-muted">Sign in to your account.</p>
+        <CardTitle>Reset your password</CardTitle>
+        <p className="mt-1 text-sm text-muted">
+          Enter your email and we&apos;ll send a link to set a new password.
+        </p>
       </CardHeader>
       <CardContent>
         <form action={formAction} className="space-y-4">
@@ -33,25 +38,16 @@ export default function LoginPage() {
             <Label htmlFor="email">Email</Label>
             <Input id="email" name="email" type="email" required autoFocus />
           </div>
-          <div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password">Password</Label>
-              <Link
-                href="/forgot-password"
-                className="mb-1.5 text-xs font-medium text-violet-bright transition-colors duration-150 hover:text-cyan-bright"
-              >
-                Forgot password?
-              </Link>
-            </div>
-            <Input id="password" name="password" type="password" required />
-          </div>
           <Toast tone="error" message={state.error} />
+          <Toast tone="success" message={state.message} />
           <SubmitButton />
         </form>
         <p className="mt-4 text-center text-sm text-muted">
-          Don&apos;t have an account?{" "}
-          <Link href="/signup" className="font-medium text-violet-bright transition-colors duration-150 hover:text-cyan-bright">
-            Sign up
+          <Link
+            href="/login"
+            className="font-medium text-violet-bright transition-colors duration-150 hover:text-cyan-bright"
+          >
+            Back to sign in
           </Link>
         </p>
       </CardContent>

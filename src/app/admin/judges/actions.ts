@@ -27,7 +27,7 @@ export async function createJudge(
     return { error: "Server is missing SUPABASE_SECRET_KEY." };
 
   const admin = createAdminClient();
-  const { error } = await admin.auth.admin.createUser({
+  const { data, error } = await admin.auth.admin.createUser({
     email,
     password,
     email_confirm: true,
@@ -36,8 +36,18 @@ export async function createJudge(
 
   if (error) return { error: error.message };
 
+  // The admin set a temporary password, so require the judge to change it on
+  // first login. The profile row is created by the handle_new_user trigger.
+  if (data.user)
+    await admin
+      .from("profiles")
+      .update({ must_change_password: true })
+      .eq("id", data.user.id);
+
   revalidatePath("/admin/judges");
-  return { message: `Created judge ${email}.` };
+  return {
+    message: `Created judge ${email}. They'll be asked to set a new password on first login.`,
+  };
 }
 
 export async function assignJudge(formData: FormData) {

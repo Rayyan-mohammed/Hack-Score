@@ -8,6 +8,7 @@ export type Profile = {
   full_name: string | null;
   email: string | null;
   role: Role;
+  must_change_password: boolean;
 };
 
 // Returns the logged-in auth user and their profile row (or nulls).
@@ -21,7 +22,7 @@ export async function getSessionUser() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, full_name, email, role")
+    .select("id, full_name, email, role, must_change_password")
     .eq("id", user.id)
     .single();
 
@@ -39,6 +40,7 @@ export async function requireUser() {
 export async function requireAdmin() {
   const { user, profile } = await getSessionUser();
   if (!user) redirect("/login");
+  if (profile?.must_change_password) redirect("/change-password");
   if (profile?.role !== "admin") redirect("/judge");
   return { user, profile: profile! };
 }
@@ -47,5 +49,6 @@ export async function requireAdmin() {
 export async function requireJudge() {
   const { user, profile } = await getSessionUser();
   if (!user) redirect("/login");
+  if (profile?.must_change_password) redirect("/change-password");
   return { user, profile: profile! };
 }
