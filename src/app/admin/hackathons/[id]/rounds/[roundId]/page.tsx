@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RoundForm } from "../../../round-form";
 import { RubricBuilder } from "../../../rubric-builder";
+import { ParticipantsForm } from "../../../participants-form";
 import { deleteRound } from "../../../round-actions";
+import { round1 } from "@/lib/leaderboard";
 
 export default async function RoundDetailPage({
   params,
@@ -29,6 +31,69 @@ export default async function RoundDetailPage({
     .select("id, name, max_marks, weight")
     .eq("round_id", roundId)
     .order("sort_order", { ascending: true });
+
+  // --- Shortlisting data -------------------------------------------------
+  const [{ data: teamRows }, { data: shortlist }, { data: allRounds }] =
+    await Promise.all([
+      supabase
+        .from("teams")
+        .select("id, team_code, name")
+        .eq("hackathon_id", round.hackathon_id)
+        .is("deleted_at", null)
+        .order("team_code", { ascending: true }),
+      supabase.from("round_teams").select("team_id").eq("round_id", roundId),
+      supabase
+        .from("rounds")
+        .select("id, name, sort_order")
+        .eq("hackathon_id", round.hackathon_id)
+        .is("deleted_at", null)
+        .order("sort_order", { ascending: true }),
+    ]);
+
+  const teams = teamRows ?? [];
+  const shortlisted = new Set((shortlist ?? []).map((r) => r.team_id));
+  const hasShortlist = shortlisted.size > 0;
+
+  // Find the round immediately before this one (by sort order) to surface its
+  // scores as a shortlisting aid.
+  const ordered = allRounds ?? [];
+  const idx = ordered.findIndex((r) => r.id === roundId);
+  const prevRound = idx > 0 ? ordered[idx - 1] : null;
+
+  const prevScore = new Map<string, number>();
+  if (prevRound) {
+    const { data: prevEvals } = await supabase
+      .from("evaluations")
+      .select("team_id, total_score, status")
+      .eq("round_id", prevRound.id)
+      .eq("status", "submitted");
+    const agg = new Map<string, { sum: number; n: number }>();
+    for (const e of prevEvals ?? []) {
+      const a = agg.get(e.team_id) ?? { sum: 0, n: 0 };
+      a.sum += Number(e.total_score);
+      a.n += 1;
+      agg.set(e.team_id, a);
+    }
+    for (const [tid, a] of agg) prevScore.set(tid, round1(a.sum / a.n));
+  }
+
+  const participantTeams = teams
+    .map((t) => ({
+      id: t.id,
+      team_code: t.team_code,
+      name: t.name,
+      prevScore: prevScore.has(t.id) ? prevScore.get(t.id)! : null,
+    }))
+    // When a previous round exists, order by its score so top teams sort first.
+    .sort((a, b) =>
+      prevRound
+        ? (b.prevScore ?? -1) - (a.prevScore ?? -1) ||
+          a.team_code.localeCompare(b.team_code)
+        : a.team_code.localeCompare(b.team_code),
+    );
+
+  // Which team ids to pre-check: the current shortlist, or all when none set.
+  const selected = hasShortlist ? [...shortlisted] : teams.map((t) => t.id);
 
   return (
     <div className="space-y-6">
@@ -64,6 +129,33 @@ export default async function RoundDetailPage({
             roundId={roundId}
             criteria={criteria ?? []}
           />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Participating teams (shortlist)</CardTitle>
+          <p className="mt-1 text-sm text-muted">
+            {prevRound
+              ? `Promote teams into this round — scores from “${prevRound.name}” are shown to help you pick.`
+              : "Choose which teams take part in this round. Leave all selected for the opening round."}
+          </p>
+        </CardHeader>
+        <CardContent>
+          {teams.length === 0 ? (
+            <p className="text-sm text-muted">
+              Add teams to this hackathon first.
+            </p>
+          ) : (
+            <ParticipantsForm
+              roundId={roundId}
+              hackathonId={id}
+              teams={participantTeams}
+              selected={selected}
+              hasShortlist={hasShortlist}
+              prevRoundName={prevRound?.name ?? null}
+            />
+          )}
         </CardContent>
       </Card>
 

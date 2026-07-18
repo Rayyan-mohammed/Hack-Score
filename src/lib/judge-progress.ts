@@ -6,6 +6,7 @@
 // does not count as visited.
 
 import { createClient } from "@/lib/supabase/server";
+import { getParticipantsMap, participates } from "@/lib/rounds";
 
 export type ProgressTeam = {
   teamId: string;
@@ -69,18 +70,21 @@ export async function getJudgeProgress(judgeId: string): Promise<JudgeProgress> 
     ...new Set(assignments.map((a) => a.rounds!.hackathon_id)),
   ];
 
-  const [{ data: teamData }, { data: evalData }] = await Promise.all([
-    supabase
-      .from("teams")
-      .select("id, team_code, name, hackathon_id")
-      .in("hackathon_id", hackathonIds)
-      .order("team_code", { ascending: true }),
-    supabase
-      .from("evaluations")
-      .select("round_id, team_id, status, submitted_at")
-      .eq("judge_id", judgeId)
-      .in("round_id", roundIds),
-  ]);
+  const [{ data: teamData }, { data: evalData }, participants] =
+    await Promise.all([
+      supabase
+        .from("teams")
+        .select("id, team_code, name, hackathon_id")
+        .in("hackathon_id", hackathonIds)
+        .is("deleted_at", null)
+        .order("team_code", { ascending: true }),
+      supabase
+        .from("evaluations")
+        .select("round_id, team_id, status, submitted_at")
+        .eq("judge_id", judgeId)
+        .in("round_id", roundIds),
+      getParticipantsMap(supabase, roundIds),
+    ]);
 
   const teams = (teamData as {
     id: string;
@@ -106,7 +110,11 @@ export async function getJudgeProgress(judgeId: string): Promise<JudgeProgress> 
 
   const rounds: RoundProgress[] = assignments.map((a) => {
     const round = a.rounds!;
-    const roundTeams = teams.filter((t) => t.hackathon_id === round.hackathon_id);
+    const roundTeams = teams.filter(
+      (t) =>
+        t.hackathon_id === round.hackathon_id &&
+        participates(participants, round.id, t.id),
+    );
 
     const evaluated: ProgressTeam[] = [];
     const pending: ProgressTeam[] = [];

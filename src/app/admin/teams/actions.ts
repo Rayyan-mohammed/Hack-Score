@@ -2,9 +2,40 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 import { parseCsv } from "@/lib/csv";
 
 export type FormState = { error?: string; message?: string };
+
+// Manual tie-break override (feature 3, tier "admin decision"). Lower number
+// ranks higher among tied teams; blank clears the override.
+export async function setTiebreakPriority(formData: FormData): Promise<void> {
+  const { user } = await requireAdmin();
+  const team_id = String(formData.get("team_id") ?? "");
+  const raw = String(formData.get("priority") ?? "").trim();
+  if (!team_id) return;
+
+  const priority = raw === "" ? null : Number(raw);
+  if (priority !== null && !Number.isFinite(priority)) return;
+
+  const supabase = await createClient();
+  await supabase
+    .from("teams")
+    .update({ tiebreak_priority: priority })
+    .eq("id", team_id);
+
+  await logAudit({
+    actorId: user.id,
+    action: "team.tiebreak_priority",
+    entity: "team",
+    entityId: team_id,
+    meta: { detail: priority === null ? "cleared" : `priority ${priority}` },
+  });
+
+  revalidatePath("/admin/leaderboard");
+  revalidatePath(`/admin/leaderboard/${team_id}`);
+}
 
 export async function createTeam(
   _prev: FormState,

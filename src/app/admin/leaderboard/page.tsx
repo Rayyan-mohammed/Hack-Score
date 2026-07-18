@@ -8,11 +8,12 @@ import {
   StatCard,
 } from "@/components/ui/card";
 import { Table, THead, TH, TR, TD } from "@/components/ui/table";
-import { LiveBadge, RankBadge, TrackBadge } from "@/components/ui/badge";
+import { Badge, LiveBadge, RankBadge, TrackBadge } from "@/components/ui/badge";
 import { EmptyCard, EmptyState } from "@/components/ui/states";
 import {
   computeStandings,
   round1,
+  TIEBREAK_RULE,
   type EvalRow,
   type RoundRow,
   type TeamRow,
@@ -43,16 +44,20 @@ export default async function LeaderboardPage({
   let evals: EvalRow[] = [];
   let judgesPerRound = 0;
 
+  const maxCriterion: Record<string, number> = {};
+
   if (selected) {
     const [{ data: t }, { data: r }] = await Promise.all([
       supabase
         .from("teams")
-        .select("id, team_code, name, track, college")
-        .eq("hackathon_id", selected),
+        .select("id, team_code, name, track, college, tiebreak_priority")
+        .eq("hackathon_id", selected)
+        .is("deleted_at", null),
       supabase
         .from("rounds")
         .select("id, name")
         .eq("hackathon_id", selected)
+        .is("deleted_at", null)
         .order("sort_order", { ascending: true }),
     ]);
     teams = (t as TeamRow[]) ?? [];
@@ -63,7 +68,7 @@ export default async function LeaderboardPage({
       const [{ data: e }, { count }] = await Promise.all([
         supabase
           .from("evaluations")
-          .select("round_id, team_id, total_score, status")
+          .select("id, round_id, team_id, total_score, status")
           .in("round_id", roundIds),
         supabase
           .from("round_judges")
@@ -72,10 +77,32 @@ export default async function LeaderboardPage({
       ]);
       evals = (e as EvalRow[]) ?? [];
       judgesPerRound = count ?? 0;
+
+      // Highest single criterion score per team (tie-break tier 2), from the
+      // per-criterion scores of submitted evaluations.
+      const evalTeam = new Map<string, string>();
+      for (const ev of (e as (EvalRow & { id: string })[]) ?? []) {
+        if (ev.status === "submitted") evalTeam.set(ev.id, ev.team_id);
+      }
+      const evalIds = [...evalTeam.keys()];
+      if (evalIds.length) {
+        const { data: scores } = await supabase
+          .from("evaluation_scores")
+          .select("evaluation_id, score")
+          .in("evaluation_id", evalIds);
+        for (const s of scores ?? []) {
+          const teamId = evalTeam.get(s.evaluation_id);
+          if (!teamId) continue;
+          maxCriterion[teamId] = Math.max(
+            maxCriterion[teamId] ?? 0,
+            Number(s.score),
+          );
+        }
+      }
     }
   }
 
-  const standings = computeStandings(teams, rounds, evals);
+  const standings = computeStandings(teams, rounds, evals, { maxCriterion });
   const submittedCount = evals.filter((e) => e.status === "submitted").length;
   const expected = teams.length * judgesPerRound;
   const completion = expected ? Math.round((submittedCount / expected) * 100) : 0;
@@ -161,8 +188,11 @@ export default async function LeaderboardPage({
           </Card>
 
           <Card>
-            <CardHeader className="flex items-center justify-between gap-3">
-              <CardTitle>Rankings</CardTitle>
+            <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <CardTitle>Rankings</CardTitle>
+                <p className="mt-1 text-xs text-muted">{TIEBREAK_RULE}</p>
+              </div>
               <LiveBadge />
             </CardHeader>
             <CardContent>
@@ -204,6 +234,15 @@ export default async function LeaderboardPage({
                               {s.team.name}
                             </span>
                           </Link>
+                          {s.unresolved ? (
+                            <Badge tone="warning" className="ml-2 align-middle">
+                              Tie — decide
+                            </Badge>
+                          ) : s.tied ? (
+                            <Badge tone="neutral" className="ml-2 align-middle">
+                              Tie-break
+                            </Badge>
+                          ) : null}
                         </TD>
                         <TD>
                           <TrackBadge track={s.team.track} />

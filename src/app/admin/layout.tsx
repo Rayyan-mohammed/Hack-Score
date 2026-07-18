@@ -7,6 +7,8 @@ const nav: NavItem[] = [
   { href: "/admin/teams", label: "Teams" },
   { href: "/admin/judges", label: "Judges" },
   { href: "/admin/leaderboard", label: "Leaderboard" },
+  { href: "/admin/audit", label: "Audit log" },
+  { href: "/admin/trash", label: "Trash" },
 ];
 
 export default async function AdminLayout({

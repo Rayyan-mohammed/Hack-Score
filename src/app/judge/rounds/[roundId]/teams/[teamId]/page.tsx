@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrackBadge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/states";
 import { EvaluationForm } from "../../../../evaluation-form";
+import { getRoundParticipantIds } from "@/lib/rounds";
 
 export default async function EvaluatePage({
   params,
@@ -37,6 +38,11 @@ export default async function EvaluatePage({
     ]);
 
   if (!round || !team) notFound();
+
+  // Eliminated teams (not on the round's shortlist) cannot be scored, even via
+  // a direct URL. No shortlist ⇒ everyone participates.
+  const participantIds = await getRoundParticipantIds(supabase, roundId);
+  if (participantIds && !participantIds.has(teamId)) notFound();
 
   const { data: evaluation } = await supabase
     .from("evaluations")

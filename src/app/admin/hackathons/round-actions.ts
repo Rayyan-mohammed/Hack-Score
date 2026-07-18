@@ -3,8 +3,43 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 
 export type FormState = { error?: string };
+
+// ---- Round participants (shortlisting / promotion) ----------------------
+
+// Replace the set of teams participating in a round. An empty selection clears
+// the shortlist, which the app reads as "all hackathon teams participate".
+export async function setRoundParticipants(formData: FormData): Promise<void> {
+  const { user } = await requireAdmin();
+  const round_id = String(formData.get("round_id") ?? "");
+  const hackathon_id = String(formData.get("hackathon_id") ?? "");
+  const teamIds = formData.getAll("team_ids").map(String).filter(Boolean);
+  if (!round_id) return;
+
+  const supabase = await createClient();
+
+  // Full replace: clear then insert the current selection.
+  await supabase.from("round_teams").delete().eq("round_id", round_id);
+  if (teamIds.length > 0) {
+    await supabase
+      .from("round_teams")
+      .insert(teamIds.map((team_id) => ({ round_id, team_id })));
+  }
+
+  await logAudit({
+    actorId: user.id,
+    action: "round.shortlist",
+    entity: "round",
+    entityId: round_id,
+    meta: { detail: `${teamIds.length} team(s) shortlisted` },
+  });
+
+  revalidatePath(`/admin/hackathons/${hackathon_id}/rounds/${round_id}`);
+  revalidatePath("/admin/leaderboard");
+}
 
 // ---- Rounds -------------------------------------------------------------
 
@@ -91,6 +126,16 @@ export async function addCriterion(
   });
 
   if (error) return { error: error.message };
+
+  // Rubric changes are audit-sensitive ("who changed the rubric after judging
+  // started?"), so record them explicitly.
+  await logAudit({
+    action: "rubric.add_criterion",
+    entity: "round",
+    entityId: round_id,
+    meta: { name, detail: `max ${max_marks}` },
+  });
+
   revalidatePath(`/admin/hackathons/${hackathon_id}/rounds/${round_id}`);
   return {};
 }
@@ -101,5 +146,13 @@ export async function deleteCriterion(formData: FormData) {
   const hackathon_id = String(formData.get("hackathon_id") ?? "");
   const supabase = await createClient();
   await supabase.from("rubric_criteria").delete().eq("id", id);
+
+  await logAudit({
+    action: "rubric.delete_criterion",
+    entity: "rubric_criteria",
+    entityId: id,
+    meta: { detail: `round ${round_id}` },
+  });
+
   revalidatePath(`/admin/hackathons/${hackathon_id}/rounds/${round_id}`);
 }

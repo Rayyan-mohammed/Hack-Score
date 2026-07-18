@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge, LiveBadge, StatusBadge } from "@/components/ui/badge";
 import { EmptyCard, EmptyState } from "@/components/ui/states";
+import { getParticipantsMap, participates } from "@/lib/rounds";
 
 type RoundRef = {
   id: string;
@@ -37,6 +38,7 @@ export default async function JudgeDashboard() {
           .from("teams")
           .select("id, team_code, name, hackathon_id")
           .in("hackathon_id", hackathonIds)
+          .is("deleted_at", null)
           .order("team_code", { ascending: true })
       : Promise.resolve({ data: [] }),
     roundIds.length
@@ -47,6 +49,9 @@ export default async function JudgeDashboard() {
           .in("round_id", roundIds)
       : Promise.resolve({ data: [] }),
   ]);
+
+  // Only show teams shortlisted into each round (empty shortlist ⇒ all teams).
+  const participants = await getParticipantsMap(supabase, roundIds);
 
   const teamList =
     (teams as { id: string; team_code: string; name: string; hackathon_id: string }[]) ??
@@ -73,7 +78,9 @@ export default async function JudgeDashboard() {
 
       {rounds.map((round) => {
         const roundTeams = teamList.filter(
-          (t) => t.hackathon_id === round.hackathon_id,
+          (t) =>
+            t.hackathon_id === round.hackathon_id &&
+            participates(participants, round.id, t.id),
         );
         return (
           <Card key={round.id}>
