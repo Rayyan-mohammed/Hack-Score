@@ -13,7 +13,7 @@ export default async function TeamResultPage({
   const { token } = await params;
   const result = await getPublicTeamResult(token);
 
-  if (!result.found) notFound();
+  if (result.status === "not_found") notFound();
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-10">
@@ -21,7 +21,19 @@ export default async function TeamResultPage({
         <Brand size="lg" />
       </div>
 
-      {!result.published ? (
+      {result.status === "unavailable" ? (
+        <Card>
+          <CardContent className="py-10 text-center">
+            <p className="font-display text-lg font-semibold text-foreground">
+              Results are temporarily unavailable
+            </p>
+            <p className="mt-2 text-sm text-muted">
+              We couldn’t load these results right now. Please try again in a
+              little while, or contact the organisers if it persists.
+            </p>
+          </CardContent>
+        </Card>
+      ) : result.status === "unpublished" ? (
         <Card>
           <CardContent className="py-10 text-center">
             <p className="font-display text-lg font-semibold text-foreground">

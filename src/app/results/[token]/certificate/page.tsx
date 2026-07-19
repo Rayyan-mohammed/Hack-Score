@@ -17,7 +17,7 @@ export default async function CertificatePage({
 }) {
   const { token } = await params;
   const result = await getPublicTeamResult(token);
-  if (!result.found || !result.published) notFound();
+  if (result.status !== "ok") notFound();
 
   const isWinner = result.award !== "Participant";
   const dateLine =
