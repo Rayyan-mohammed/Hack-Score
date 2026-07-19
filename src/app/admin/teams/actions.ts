@@ -5,8 +5,29 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { parseCsv } from "@/lib/csv";
+import {
+  parseMembers,
+  isValidEmail,
+  validateTeamSize,
+} from "@/lib/team-validation";
 
 export type FormState = { error?: string; message?: string };
+
+// Fetch a hackathon's team-size bounds (defaults if unset).
+async function teamSizeBounds(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  hackathonId: string,
+) {
+  const { data } = await supabase
+    .from("hackathons")
+    .select("min_team_size, max_team_size")
+    .eq("id", hackathonId)
+    .single();
+  return {
+    min: Number(data?.min_team_size ?? 1),
+    max: Number(data?.max_team_size ?? 6),
+  };
+}
 
 // Manual tie-break override (feature 3, tier "admin decision"). Lower number
 // ranks higher among tied teams; blank clears the override.
@@ -44,25 +65,52 @@ export async function createTeam(
   const hackathon_id = String(formData.get("hackathon_id") ?? "");
   const team_code = String(formData.get("team_code") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
+  const leader_name = String(formData.get("team_leader_name") ?? "").trim();
+  const leader_email = String(formData.get("team_leader_email") ?? "").trim();
+  const members = parseMembers(String(formData.get("members") ?? ""));
+
   if (!hackathon_id) return { error: "Pick a hackathon first." };
   if (!team_code || !name)
     return { error: "Team code and name are required." };
+  if (name.length < 3) return { error: "Team name must be at least 3 characters." };
+  if (leader_name.length < 2)
+    return { error: "Team leader name is required (min 2 characters)." };
+  if (!isValidEmail(leader_email))
+    return { error: "A valid team leader email is required." };
 
   const supabase = await createClient();
-  const { error } = await supabase.from("teams").insert({
-    hackathon_id,
-    team_code,
-    name,
-    college: String(formData.get("college") ?? "").trim() || null,
-    track: String(formData.get("track") ?? "").trim() || null,
-    mentor: String(formData.get("mentor") ?? "").trim() || null,
-    problem_statement:
-      String(formData.get("problem_statement") ?? "").trim() || null,
-  });
 
-  if (error) return { error: error.message };
+  const { min, max } = await teamSizeBounds(supabase, hackathon_id);
+  const sizeError = validateTeamSize(members.length, min, max);
+  if (sizeError) return { error: sizeError };
+
+  const { data: team, error } = await supabase
+    .from("teams")
+    .insert({
+      hackathon_id,
+      team_code,
+      name,
+      team_leader_name: leader_name,
+      team_leader_email: leader_email,
+      college: String(formData.get("college") ?? "").trim() || null,
+      track: String(formData.get("track") ?? "").trim() || null,
+      mentor: String(formData.get("mentor") ?? "").trim() || null,
+      problem_statement:
+        String(formData.get("problem_statement") ?? "").trim() || null,
+    })
+    .select("id")
+    .single();
+
+  if (error || !team) return { error: error?.message ?? "Could not add team." };
+
+  if (members.length > 0) {
+    await supabase
+      .from("team_members")
+      .insert(members.map((m) => ({ team_id: team.id, name: m })));
+  }
+
   revalidatePath("/admin/teams");
-  return { message: `Added ${name}.` };
+  return { message: `Added ${name} (${1 + members.length} members).` };
 }
 
 export async function deleteTeam(formData: FormData) {
@@ -94,8 +142,10 @@ export async function deleteTeam(formData: FormData) {
 }
 
 // Bulk import teams from an uploaded CSV file.
-// Expected headers: team_code, name, college, track, mentor,
-// problem_statement, members (members separated by ';').
+// Expected headers: team_code, team_leader_name, team_leader_email, name,
+// college, track, mentor, problem_statement, members (members separated by ';').
+// Each row is validated (leader name + email, team size) and skipped with a
+// reason if invalid, so a bad row never aborts the whole import.
 export async function importTeams(
   _prev: FormState,
   formData: FormData,
@@ -111,12 +161,46 @@ export async function importTeams(
   if (rows.length === 0) return { error: "No rows found in the file." };
 
   const supabase = await createClient();
-  let imported = 0;
+  const { min, max } = await teamSizeBounds(supabase, hackathon_id);
 
-  for (const r of rows) {
+  let imported = 0;
+  const skipped: string[] = [];
+
+  for (const [i, r] of rows.entries()) {
+    const label = `Row ${i + 2}`; // +2: header row + 1-based
     const team_code = (r.team_code || r.code || r["team id"] || "").trim();
     const name = (r.name || r["team name"] || "").trim();
-    if (!team_code || !name) continue;
+    const leader_name = (
+      r.team_leader_name ||
+      r["team leader name"] ||
+      r.leader_name ||
+      ""
+    ).trim();
+    const leader_email = (
+      r.team_leader_email ||
+      r["team leader email"] ||
+      r.leader_email ||
+      ""
+    ).trim();
+    const members = parseMembers(r.members);
+
+    if (!team_code || !name) {
+      skipped.push(`${label}: missing team code or name`);
+      continue;
+    }
+    if (leader_name.length < 2) {
+      skipped.push(`${label} (${team_code}): missing team leader name`);
+      continue;
+    }
+    if (!isValidEmail(leader_email)) {
+      skipped.push(`${label} (${team_code}): invalid team leader email`);
+      continue;
+    }
+    const sizeError = validateTeamSize(members.length, min, max);
+    if (sizeError) {
+      skipped.push(`${label} (${team_code}): ${sizeError}`);
+      continue;
+    }
 
     const { data: team, error } = await supabase
       .from("teams")
@@ -124,6 +208,8 @@ export async function importTeams(
         hackathon_id,
         team_code,
         name,
+        team_leader_name: leader_name,
+        team_leader_email: leader_email,
         college: r.college || null,
         track: r.track || null,
         mentor: r.mentor || null,
@@ -132,13 +218,12 @@ export async function importTeams(
       .select("id")
       .single();
 
-    if (error || !team) continue;
+    if (error || !team) {
+      skipped.push(`${label} (${team_code}): ${error?.message ?? "insert failed"}`);
+      continue;
+    }
     imported++;
 
-    const members = (r.members || "")
-      .split(";")
-      .map((m) => m.trim())
-      .filter(Boolean);
     if (members.length > 0) {
       await supabase
         .from("team_members")
@@ -147,5 +232,20 @@ export async function importTeams(
   }
 
   revalidatePath("/admin/teams");
-  return { message: `Imported ${imported} of ${rows.length} rows.` };
+
+  if (imported === 0)
+    return {
+      error: `No rows imported. ${skipped.slice(0, 5).join(" · ")}${
+        skipped.length > 5 ? ` · +${skipped.length - 5} more` : ""
+      }`,
+    };
+
+  const summary = `Imported ${imported} of ${rows.length} rows.`;
+  return {
+    message: skipped.length
+      ? `${summary} Skipped ${skipped.length}: ${skipped.slice(0, 3).join(" · ")}${
+          skipped.length > 3 ? " …" : ""
+        }`
+      : summary,
+  };
 }

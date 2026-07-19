@@ -1,4 +1,4 @@
-team_code,name,college,track,mentor,problem_statement,members
-T01,Byte Builders,MIT College,AI/ML,Dr. Rao,"Reduce campus food waste with a sharing app",Asha Menon;Rahul Nair;Priya Das
-T02,Code Crafters,VIT,Web,Prof. Iyer,"A marketplace for local artisans",Neha Shah;Arjun Rao
-T03,Data Dynamos,NIT,Data,Dr. Khan,"Predict bus arrival times from GPS data",Sam Joseph;Meera Pillai;Karan Roy
+team_code,team_leader_name,team_leader_email,name,college,track,mentor,problem_statement,members
+T01,Nikhil Verma,nikhil@example.com,Quantum Coders,VIT Chennai,AI & Healthcare,Dr. Kavita Iyer,"AI-powered early disease detection",Sneha Kulkarni;Rohit Bansal;Pooja Singh;Aman Gupta
+T02,Harsh Patel,harsh@example.com,Cyber Titans,Amity University Noida,Cybersecurity,Dr. Rakesh Sharma,"Phishing detection with machine learning",Ishita Jain;Mohit Saini;Dev Malhotra
+T03,Meera Pillai,meera@example.com,Data Dynamos,NIT Trichy,Data,Dr. Khan,"Predict bus arrival times from GPS data",Sam Joseph;Karan Roy
