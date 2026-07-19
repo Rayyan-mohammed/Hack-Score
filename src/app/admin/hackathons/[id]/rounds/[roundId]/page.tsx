@@ -34,22 +34,31 @@ export default async function RoundDetailPage({
     .order("sort_order", { ascending: true });
 
   // --- Shortlisting data -------------------------------------------------
-  const [{ data: teamRows }, { data: shortlist }, { data: allRounds }] =
-    await Promise.all([
-      supabase
-        .from("teams")
-        .select("id, team_code, name")
-        .eq("hackathon_id", round.hackathon_id)
-        .is("deleted_at", null)
-        .order("team_code", { ascending: true }),
-      supabase.from("round_teams").select("team_id").eq("round_id", roundId),
-      supabase
-        .from("rounds")
-        .select("id, name, sort_order")
-        .eq("hackathon_id", round.hackathon_id)
-        .is("deleted_at", null)
-        .order("sort_order", { ascending: true }),
-    ]);
+  const [
+    { data: teamRows },
+    { data: shortlist },
+    { data: allRounds },
+    { data: hackathon },
+  ] = await Promise.all([
+    supabase
+      .from("teams")
+      .select("id, team_code, name")
+      .eq("hackathon_id", round.hackathon_id)
+      .is("deleted_at", null)
+      .order("team_code", { ascending: true }),
+    supabase.from("round_teams").select("team_id").eq("round_id", roundId),
+    supabase
+      .from("rounds")
+      .select("id, name, sort_order")
+      .eq("hackathon_id", round.hackathon_id)
+      .is("deleted_at", null)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("hackathons")
+      .select("start_date, end_date")
+      .eq("id", round.hackathon_id)
+      .single(),
+  ]);
 
   const teams = teamRows ?? [];
   const shortlisted = new Set((shortlist ?? []).map((r) => r.team_id));
@@ -116,7 +125,11 @@ export default async function RoundDetailPage({
           <CardTitle>Round settings</CardTitle>
         </CardHeader>
         <CardContent>
-          <RoundForm round={round} />
+          <RoundForm
+            round={round}
+            hackathonStart={hackathon?.start_date ?? null}
+            hackathonEnd={hackathon?.end_date ?? null}
+          />
         </CardContent>
       </Card>
 

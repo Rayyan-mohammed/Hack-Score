@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser, requireAdmin } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { validateHackathonDates } from "@/lib/date-validation";
 
 export type FormState = { error?: string };
 
@@ -26,6 +27,16 @@ export async function createHackathon(
 ): Promise<FormState> {
   const values = parseHackathon(formData);
   if (!values.name) return { error: "Name is required." };
+
+  const dateCheck = validateHackathonDates(values.start_date, values.end_date);
+  if (!dateCheck.ok) {
+    await logAudit({
+      action: "validation.date_rejected",
+      entity: "hackathon",
+      meta: { detail: dateCheck.error },
+    });
+    return { error: dateCheck.error };
+  }
 
   const supabase = await createClient();
   const { user } = await getSessionUser();
@@ -49,6 +60,17 @@ export async function updateHackathon(
   const id = String(formData.get("id") ?? "");
   const values = parseHackathon(formData);
   if (!values.name) return { error: "Name is required." };
+
+  const dateCheck = validateHackathonDates(values.start_date, values.end_date);
+  if (!dateCheck.ok) {
+    await logAudit({
+      action: "validation.date_rejected",
+      entity: "hackathon",
+      entityId: id,
+      meta: { detail: dateCheck.error },
+    });
+    return { error: dateCheck.error };
+  }
 
   const supabase = await createClient();
   const { error } = await supabase

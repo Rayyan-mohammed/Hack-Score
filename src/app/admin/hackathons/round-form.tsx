@@ -31,11 +31,37 @@ function toLocalInput(value: string | null) {
   return value ? value.slice(0, 16) : "";
 }
 
-export function RoundForm({ round }: { round: Round }) {
+// DD-MM-YYYY for the helper text.
+function dmy(iso: string | null) {
+  if (!iso) return null;
+  const [y, m, d] = iso.slice(0, 10).split("-");
+  return `${d}-${m}-${y}`;
+}
+
+export function RoundForm({
+  round,
+  hackathonStart,
+  hackathonEnd,
+}: {
+  round: Round;
+  hackathonStart: string | null;
+  hackathonEnd: string | null;
+}) {
   const [state, formAction] = useActionState<FormState, FormData>(
     updateRound,
     {},
   );
+
+  // Bound the datetime pickers to the hackathon window so out-of-range days
+  // are disabled in the calendar (the server enforces this too).
+  const minDT = hackathonStart ? `${hackathonStart.slice(0, 10)}T00:00` : undefined;
+  const maxDT = hackathonEnd ? `${hackathonEnd.slice(0, 10)}T23:59` : undefined;
+  const windowNote =
+    hackathonStart || hackathonEnd
+      ? `Must be within the hackathon period (${dmy(hackathonStart) ?? "—"} to ${
+          dmy(hackathonEnd) ?? "—"
+        }).`
+      : null;
 
   return (
     <form action={formAction} className="max-w-xl space-y-4">
@@ -61,6 +87,9 @@ export function RoundForm({ round }: { round: Round }) {
             name="starts_at"
             type="datetime-local"
             defaultValue={toLocalInput(round.starts_at)}
+            min={minDT}
+            max={maxDT}
+            title={maxDT ? `Cannot be after ${dmy(hackathonEnd)}` : undefined}
           />
         </div>
         <div>
@@ -70,9 +99,13 @@ export function RoundForm({ round }: { round: Round }) {
             name="ends_at"
             type="datetime-local"
             defaultValue={toLocalInput(round.ends_at)}
+            min={minDT}
+            max={maxDT}
+            title={maxDT ? `Cannot be after ${dmy(hackathonEnd)}` : undefined}
           />
         </div>
       </div>
+      {windowNote && <p className="text-xs text-muted">{windowNote}</p>}
       <label className="flex items-center gap-2 text-sm">
         <input
           type="checkbox"

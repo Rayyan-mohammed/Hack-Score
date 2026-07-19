@@ -5,8 +5,44 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { validateRoundWithinHackathon } from "@/lib/date-validation";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type FormState = { error?: string };
+
+// Reject round dates that fall outside the hackathon window. Returns an error
+// string (already audit-logged) or null when the dates are valid.
+async function checkRoundDates(
+  supabase: SupabaseClient,
+  hackathonId: string,
+  roundId: string | null,
+  startsAt: string | null,
+  endsAt: string | null,
+): Promise<string | null> {
+  if (!startsAt && !endsAt) return null;
+
+  const { data: hk } = await supabase
+    .from("hackathons")
+    .select("start_date, end_date")
+    .eq("id", hackathonId)
+    .single();
+
+  const check = validateRoundWithinHackathon(
+    startsAt,
+    endsAt,
+    hk?.start_date ?? null,
+    hk?.end_date ?? null,
+  );
+  if (check.ok) return null;
+
+  await logAudit({
+    action: "validation.date_rejected",
+    entity: "round",
+    entityId: roundId,
+    meta: { detail: check.error },
+  });
+  return check.error;
+}
 
 // ---- Round participants (shortlisting / promotion) ----------------------
 
@@ -51,13 +87,26 @@ export async function createRound(
   const name = String(formData.get("name") ?? "").trim();
   if (!name) return { error: "Round name is required." };
 
+  const starts_at = String(formData.get("starts_at") ?? "") || null;
+  const ends_at = String(formData.get("ends_at") ?? "") || null;
+
   const supabase = await createClient();
+
+  const dateError = await checkRoundDates(
+    supabase,
+    hackathon_id,
+    null,
+    starts_at,
+    ends_at,
+  );
+  if (dateError) return { error: dateError };
+
   const { error } = await supabase.from("rounds").insert({
     hackathon_id,
     name,
     description: String(formData.get("description") ?? "").trim() || null,
-    starts_at: String(formData.get("starts_at") ?? "") || null,
-    ends_at: String(formData.get("ends_at") ?? "") || null,
+    starts_at,
+    ends_at,
     sort_order: Number(formData.get("sort_order") ?? 0),
   });
 
@@ -75,14 +124,27 @@ export async function updateRound(
   const name = String(formData.get("name") ?? "").trim();
   if (!name) return { error: "Round name is required." };
 
+  const starts_at = String(formData.get("starts_at") ?? "") || null;
+  const ends_at = String(formData.get("ends_at") ?? "") || null;
+
   const supabase = await createClient();
+
+  const dateError = await checkRoundDates(
+    supabase,
+    hackathon_id,
+    id,
+    starts_at,
+    ends_at,
+  );
+  if (dateError) return { error: dateError };
+
   const { error } = await supabase
     .from("rounds")
     .update({
       name,
       description: String(formData.get("description") ?? "").trim() || null,
-      starts_at: String(formData.get("starts_at") ?? "") || null,
-      ends_at: String(formData.get("ends_at") ?? "") || null,
+      starts_at,
+      ends_at,
       is_active: formData.get("is_active") === "on",
     })
     .eq("id", id);

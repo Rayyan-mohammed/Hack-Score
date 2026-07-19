@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
@@ -38,6 +38,11 @@ export function HackathonForm({
 }) {
   const [state, formAction] = useActionState<FormState, FormData>(action, {});
 
+  // Controlled so each picker bounds the other: end can't precede start, and
+  // start can't follow end (dates outside the range are disabled in the picker).
+  const [startDate, setStartDate] = useState(values.start_date ?? "");
+  const [endDate, setEndDate] = useState(values.end_date ?? "");
+
   return (
     <form action={formAction} className="max-w-xl space-y-4">
       {values.id && <input type="hidden" name="id" value={values.id} />}
@@ -64,7 +69,9 @@ export function HackathonForm({
             id="start_date"
             name="start_date"
             type="date"
-            defaultValue={values.start_date ?? ""}
+            value={startDate}
+            max={endDate || undefined}
+            onChange={(e) => setStartDate(e.target.value)}
           />
         </div>
         <div>
@@ -73,10 +80,20 @@ export function HackathonForm({
             id="end_date"
             name="end_date"
             type="date"
-            defaultValue={values.end_date ?? ""}
+            value={endDate}
+            min={startDate || undefined}
+            title={
+              startDate ? `Must be on or after ${startDate}` : undefined
+            }
+            onChange={(e) => setEndDate(e.target.value)}
           />
         </div>
       </div>
+      {startDate && endDate && startDate > endDate && (
+        <p className="text-xs text-warning">
+          End date is before the start date — please fix before saving.
+        </p>
+      )}
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="min_team_size">Min team size</Label>
