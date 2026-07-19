@@ -30,12 +30,15 @@ export default async function TeamsPage({
 
   const { data: hackathons } = await supabase
     .from("hackathons")
-    .select("id, name")
+    .select("id, name, min_team_size, max_team_size")
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
   const list = hackathons ?? [];
   const selected = h || list[0]?.id;
+  const selectedHk = list.find((x) => x.id === selected);
+  const minSize = Number(selectedHk?.min_team_size ?? 1);
+  const maxSize = Number(selectedHk?.max_team_size ?? 6);
 
   const { data: teams } = selected
     ? await supabase
@@ -128,7 +131,11 @@ export default async function TeamsPage({
                 <CardTitle>Add a team</CardTitle>
               </CardHeader>
               <CardContent>
-                <AddTeamForm hackathonId={selected!} />
+                <AddTeamForm
+                  hackathonId={selected!}
+                  minSize={minSize}
+                  maxSize={maxSize}
+                />
               </CardContent>
             </Card>
             <Card>
