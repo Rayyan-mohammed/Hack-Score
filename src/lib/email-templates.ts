@@ -10,6 +10,17 @@ function esc(s: string | number | null | undefined): string {
     .replace(/"/g, "&quot;");
 }
 
+/** Substitute the supported {{VARIABLES}} in subject/body text. */
+export function fillVars(
+  text: string,
+  vars: { leaderName: string; teamName: string; hackathonName: string },
+): string {
+  return text
+    .replaceAll("{{TEAM_LEADER_NAME}}", vars.leaderName)
+    .replaceAll("{{TEAM_NAME}}", vars.teamName)
+    .replaceAll("{{HACKATHON_NAME}}", vars.hackathonName);
+}
+
 export function ordinal(n: number): string {
   const s = ["th", "st", "nd", "rd"];
   const v = n % 100;
