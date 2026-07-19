@@ -48,6 +48,19 @@ function SubmitButton({ label }: { label: string }) {
   );
 }
 
+export type TeamInitial = {
+  team_code?: string;
+  name?: string;
+  team_leader_name?: string | null;
+  team_leader_email?: string | null;
+  college?: string | null;
+  track?: string | null;
+  mentor?: string | null;
+  problem_statement?: string | null;
+  members?: string; // "A; B; C"
+};
+
+// Add-team wrapper (create).
 export function AddTeamForm({
   hackathonId,
   minSize,
@@ -57,13 +70,37 @@ export function AddTeamForm({
   minSize: number;
   maxSize: number;
 }) {
-  const [state, formAction] = useActionState<FormState, FormData>(
-    createTeam,
-    {},
+  return (
+    <TeamForm
+      action={createTeam}
+      hidden={{ hackathon_id: hackathonId }}
+      minSize={minSize}
+      maxSize={maxSize}
+      submitLabel="Add team"
+    />
   );
+}
+
+// Shared create/edit team form with a live size counter.
+export function TeamForm({
+  action,
+  hidden,
+  minSize,
+  maxSize,
+  submitLabel,
+  initial = {},
+}: {
+  action: (prev: FormState, formData: FormData) => Promise<FormState>;
+  hidden: Record<string, string>;
+  minSize: number;
+  maxSize: number;
+  submitLabel: string;
+  initial?: TeamInitial;
+}) {
+  const [state, formAction] = useActionState<FormState, FormData>(action, {});
 
   // Live team-size feedback: leader (1) + listed members.
-  const [membersRaw, setMembersRaw] = useState("");
+  const [membersRaw, setMembersRaw] = useState(initial.members ?? "");
   const memberCount = parseMembers(membersRaw).length;
   const total = 1 + memberCount;
   const sizeError = validateTeamSize(memberCount, minSize, maxSize);
@@ -71,15 +108,29 @@ export function AddTeamForm({
 
   return (
     <form action={formAction} className="space-y-3">
-      <input type="hidden" name="hackathon_id" value={hackathonId} />
+      {Object.entries(hidden).map(([name, value]) => (
+        <input key={name} type="hidden" name={name} value={value} />
+      ))}
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <Label htmlFor="team_code">Team code</Label>
-          <Input id="team_code" name="team_code" placeholder="T01" required />
+          <Input
+            id="team_code"
+            name="team_code"
+            placeholder="T01"
+            defaultValue={initial.team_code ?? ""}
+            required
+          />
         </div>
         <div>
           <Label htmlFor="name">Team name</Label>
-          <Input id="name" name="name" minLength={3} required />
+          <Input
+            id="name"
+            name="name"
+            minLength={3}
+            defaultValue={initial.name ?? ""}
+            required
+          />
         </div>
         <div>
           <Label htmlFor="team_leader_name">Team leader name</Label>
@@ -87,6 +138,7 @@ export function AddTeamForm({
             id="team_leader_name"
             name="team_leader_name"
             minLength={2}
+            defaultValue={initial.team_leader_name ?? ""}
             required
           />
         </div>
@@ -97,25 +149,46 @@ export function AddTeamForm({
             name="team_leader_email"
             type="email"
             placeholder="leader@example.com"
+            defaultValue={initial.team_leader_email ?? ""}
             required
           />
         </div>
         <div>
           <Label htmlFor="college">College</Label>
-          <Input id="college" name="college" required />
+          <Input
+            id="college"
+            name="college"
+            defaultValue={initial.college ?? ""}
+            required
+          />
         </div>
         <div>
           <Label htmlFor="track">Track</Label>
-          <Input id="track" name="track" required />
+          <Input
+            id="track"
+            name="track"
+            defaultValue={initial.track ?? ""}
+            required
+          />
         </div>
         <div>
           <Label htmlFor="mentor">Mentor</Label>
-          <Input id="mentor" name="mentor" required />
+          <Input
+            id="mentor"
+            name="mentor"
+            defaultValue={initial.mentor ?? ""}
+            required
+          />
         </div>
       </div>
       <div>
         <Label htmlFor="problem_statement">Problem statement</Label>
-        <Textarea id="problem_statement" name="problem_statement" required />
+        <Textarea
+          id="problem_statement"
+          name="problem_statement"
+          defaultValue={initial.problem_statement ?? ""}
+          required
+        />
       </div>
       <div>
         <Label htmlFor="members">Team members</Label>
@@ -142,7 +215,7 @@ export function AddTeamForm({
       </div>
       <Toast tone="error" message={state.error} />
       <Toast tone="success" message={state.message} />
-      <SubmitButton label="Add team" />
+      <SubmitButton label={submitLabel} />
     </form>
   );
 }

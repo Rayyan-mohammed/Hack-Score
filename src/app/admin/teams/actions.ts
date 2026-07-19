@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
@@ -111,6 +112,78 @@ export async function createTeam(
 
   revalidatePath("/admin/teams");
   return { message: `Added ${name} (${1 + members.length} members).` };
+}
+
+// Edit an existing team. Same validation as create; replaces the member list.
+export async function updateTeam(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const { user } = await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const team_code = String(formData.get("team_code") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim();
+  const leader_name = String(formData.get("team_leader_name") ?? "").trim();
+  const leader_email = String(formData.get("team_leader_email") ?? "").trim();
+  const members = parseMembers(String(formData.get("members") ?? ""));
+
+  if (!id) return { error: "Missing team." };
+  if (!team_code || !name)
+    return { error: "Team code and name are required." };
+  if (name.length < 3) return { error: "Team name must be at least 3 characters." };
+  if (leader_name.length < 2)
+    return { error: "Team leader name is required (min 2 characters)." };
+  if (!isValidEmail(leader_email))
+    return { error: "A valid team leader email is required." };
+
+  const supabase = await createClient();
+
+  const { data: existing } = await supabase
+    .from("teams")
+    .select("hackathon_id")
+    .eq("id", id)
+    .single();
+  if (!existing) return { error: "Team not found." };
+
+  const { min, max } = await teamSizeBounds(supabase, existing.hackathon_id);
+  const sizeError = validateTeamSize(members.length, min, max);
+  if (sizeError) return { error: sizeError };
+
+  const { error } = await supabase
+    .from("teams")
+    .update({
+      team_code,
+      name,
+      team_leader_name: leader_name,
+      team_leader_email: leader_email,
+      college: String(formData.get("college") ?? "").trim() || null,
+      track: String(formData.get("track") ?? "").trim() || null,
+      mentor: String(formData.get("mentor") ?? "").trim() || null,
+      problem_statement:
+        String(formData.get("problem_statement") ?? "").trim() || null,
+    })
+    .eq("id", id);
+
+  if (error) return { error: error.message };
+
+  // Replace the member list with the submitted one.
+  await supabase.from("team_members").delete().eq("team_id", id);
+  if (members.length > 0) {
+    await supabase
+      .from("team_members")
+      .insert(members.map((m) => ({ team_id: id, name: m })));
+  }
+
+  await logAudit({
+    actorId: user.id,
+    action: "team.update",
+    entity: "team",
+    entityId: id,
+    meta: { name },
+  });
+
+  revalidatePath("/admin/teams");
+  redirect(`/admin/teams?h=${existing.hackathon_id}`);
 }
 
 export async function deleteTeam(formData: FormData) {

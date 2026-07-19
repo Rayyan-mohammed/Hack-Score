@@ -51,47 +51,48 @@ export function AppShell({
   );
 
   return (
-    <div className="flex flex-1 flex-col">
-      <div className="flex flex-1">
-        {/* Sidebar — collapses into the drawer below md. Sticky + full viewport
-            height with self-start so it stays pinned while the main content
-            scrolls; only the nav scrolls if the menu ever exceeds the height. */}
-        <aside className="no-print sticky top-0 hidden h-screen w-60 shrink-0 flex-col self-start border-r border-border bg-surface md:flex">
-          <div className="flex h-20 shrink-0 items-center border-b border-border px-5">
-            <Brand />
-          </div>
-          <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-            <NavLinks nav={nav} />
-          </nav>
-          <div className="shrink-0 p-3">
-            <UserCard profile={profile} />
-          </div>
-        </aside>
-
-        <div className="flex min-w-0 flex-1 flex-col">
-          <header className="no-print sticky top-0 z-40 flex h-16 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-md sm:px-6 md:h-20">
-            {/* Brand on the left (mobile only — the sidebar carries it on desktop) */}
-            <span className="md:hidden">
-              <Brand />
-            </span>
-
-            <div className="ml-auto flex items-center gap-3">
-              {/* Desktop: identity + sign out on the right */}
-              <span className="hidden text-sm text-muted md:inline">
-                {profile?.email} · {roleLabel}
-              </span>
-              <SignOutButton className="hidden md:block" />
-
-              {/* Mobile: hamburger on the right, opening the drawer */}
-              <MobileNav nav={nav} footer={drawerFooter} />
-            </div>
-          </header>
-
-          <main className="flex-1 p-4 sm:p-6">{children}</main>
+    <div className="flex min-h-full flex-1 flex-col">
+      {/* Sidebar — FIXED to the viewport, so the logo and menu are always fully
+          visible and never scroll off, even at the bottom of a long page. Its
+          full-height right border is the vertical divider. Hidden below md,
+          where the hamburger drawer takes over. */}
+      <aside className="no-print fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-border bg-surface md:flex">
+        <div className="flex h-20 shrink-0 items-center border-b border-border px-5">
+          <Brand />
         </div>
-      </div>
+        <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+          <NavLinks nav={nav} />
+        </nav>
+        <div className="shrink-0 p-3">
+          <UserCard profile={profile} />
+        </div>
+      </aside>
 
-      <Footer />
+      {/* Content column, offset for the fixed sidebar on desktop so content and
+          the footer start after the sidebar's divider. */}
+      <div className="flex min-w-0 flex-1 flex-col md:pl-60">
+        <header className="no-print sticky top-0 z-40 flex h-16 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-md sm:px-6 md:h-20">
+          {/* Brand on the left (mobile only — the sidebar carries it on desktop) */}
+          <span className="md:hidden">
+            <Brand />
+          </span>
+
+          <div className="ml-auto flex items-center gap-3">
+            {/* Desktop: identity + sign out on the right */}
+            <span className="hidden text-sm text-muted md:inline">
+              {profile?.email} · {roleLabel}
+            </span>
+            <SignOutButton className="hidden md:block" />
+
+            {/* Mobile: hamburger on the right, opening the drawer */}
+            <MobileNav nav={nav} footer={drawerFooter} />
+          </div>
+        </header>
+
+        <main className="flex-1 p-4 sm:p-6">{children}</main>
+
+        <Footer />
+      </div>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -105,17 +106,24 @@ export default async function TeamsPage({
                           <TrackBadge track={t.track} />
                         </TD>
                         <TD className="text-right">
-                          <form action={deleteTeam}>
-                            <input type="hidden" name="id" value={t.id} />
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              type="submit"
-                              className="hover:bg-danger/10 hover:text-danger"
-                            >
-                              Remove
-                            </Button>
-                          </form>
+                          <div className="flex items-center justify-end gap-1">
+                            <Link href={`/admin/teams/${t.id}/edit`}>
+                              <Button variant="ghost" size="sm">
+                                Edit
+                              </Button>
+                            </Link>
+                            <form action={deleteTeam}>
+                              <input type="hidden" name="id" value={t.id} />
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                type="submit"
+                                className="hover:bg-danger/10 hover:text-danger"
+                              >
+                                Remove
+                              </Button>
+                            </form>
+                          </div>
                         </TD>
                       </TR>
                     ))}
