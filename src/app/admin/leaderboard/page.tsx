@@ -22,7 +22,11 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { HackathonSelect } from "./hackathon-select";
 import { TopTeamsChart } from "./top-teams-chart";
-import { setResultsPublished } from "./actions";
+import { PublishControl } from "./publish-control";
+
+// Allow up to 60s for bulk result emails (applies on Vercel Pro; Hobby caps
+// at 10s regardless).
+export const maxDuration = 60;
 
 export default async function LeaderboardPage({
   searchParams,
@@ -46,6 +50,7 @@ export default async function LeaderboardPage({
   let rounds: RoundRow[] = [];
   let evals: EvalRow[] = [];
   let judgesPerRound = 0;
+  let leaderCount = 0;
 
   const maxCriterion: Record<string, number> = {};
 
@@ -53,7 +58,9 @@ export default async function LeaderboardPage({
     const [{ data: t }, { data: r }] = await Promise.all([
       supabase
         .from("teams")
-        .select("id, team_code, name, track, college, tiebreak_priority")
+        .select(
+          "id, team_code, name, track, college, tiebreak_priority, team_leader_email",
+        )
         .eq("hackathon_id", selected)
         .is("deleted_at", null),
       supabase
@@ -65,6 +72,9 @@ export default async function LeaderboardPage({
     ]);
     teams = (t as TeamRow[]) ?? [];
     rounds = (r as RoundRow[]) ?? [];
+    leaderCount = (
+      (t as { team_leader_email: string | null }[]) ?? []
+    ).filter((x) => x.team_leader_email?.trim()).length;
 
     const roundIds = rounds.map((x) => x.id);
     if (roundIds.length) {
@@ -136,24 +146,6 @@ export default async function LeaderboardPage({
                       Report (PDF)
                     </Button>
                   </Link>
-                  <form action={setResultsPublished}>
-                    <input type="hidden" name="hackathon_id" value={selected} />
-                    <input
-                      type="hidden"
-                      name="publish"
-                      value={selectedHk?.results_published ? "false" : "true"}
-                    />
-                    <Button
-                      size="sm"
-                      variant={
-                        selectedHk?.results_published ? "outline" : "primary"
-                      }
-                    >
-                      {selectedHk?.results_published
-                        ? "Unpublish results"
-                        : "Publish results"}
-                    </Button>
-                  </form>
                 </>
               )}
             </div>
@@ -161,12 +153,12 @@ export default async function LeaderboardPage({
         }
       />
 
-      {selectedHk?.results_published && (
-        <div className="flex items-center gap-2 rounded-xl border border-success/40 bg-success/10 px-4 py-3 text-sm text-foreground">
-          <Badge tone="success">Published</Badge>
-          Teams can view their results via their private links (shown on each
-          team’s detail page).
-        </div>
+      {selected && (
+        <PublishControl
+          hackathonId={selected}
+          published={!!selectedHk?.results_published}
+          leaderCount={leaderCount}
+        />
       )}
 
       {list.length === 0 ? (
