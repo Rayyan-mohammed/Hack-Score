@@ -6,6 +6,7 @@ import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { Toast } from "@/components/ui/toast";
+import { FileDropzone } from "@/components/ui/file-dropzone";
 import { createTeam, importTeams, type FormState } from "./actions";
 
 type Hackathon = { id: string; name: string };
@@ -106,13 +107,7 @@ export function ImportTeamsForm({ hackathonId }: { hackathonId: string }) {
       >
         Download template CSV
       </a>
-      <input
-        type="file"
-        name="file"
-        accept=".csv,text/csv"
-        className="block text-sm"
-        required
-      />
+      <FileDropzone name="file" accept=".csv" maxSizeMB={10} />
       <Toast tone="error" message={state.error} />
       <Toast tone="success" message={state.message} />
       <SubmitButton label="Import CSV" />
