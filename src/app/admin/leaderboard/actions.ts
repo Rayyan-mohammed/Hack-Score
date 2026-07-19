@@ -6,7 +6,11 @@ import { requireAdmin } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { getSiteOrigin } from "@/lib/site";
 import { sendBulk, isEmailConfigured, type EmailMessage } from "@/lib/email";
-import { resultEmailHtml, resultEmailText } from "@/lib/email-templates";
+import {
+  resultEmailHtml,
+  resultEmailText,
+  type ResultEmailData,
+} from "@/lib/email-templates";
 import {
   computeStandings,
   round1,
@@ -100,16 +104,25 @@ export async function publishResultsAndEmail(
 
   let evals: EvalRow[] = [];
   const maxCriterion: Record<string, number> = {};
+  const feedbackByTeam = new Map<string, string[]>();
   if (roundIds.length) {
     const { data: e } = await supabase
       .from("evaluations")
-      .select("id, round_id, team_id, total_score, status")
+      .select("id, round_id, team_id, total_score, status, comments")
       .in("round_id", roundIds);
-    const rows = (e as (EvalRow & { id: string })[]) ?? [];
+    const rows =
+      (e as (EvalRow & { id: string; comments: string | null })[]) ?? [];
     evals = rows;
     const submitted = new Map<string, string>();
     for (const ev of rows)
-      if (ev.status === "submitted") submitted.set(ev.id, ev.team_id);
+      if (ev.status === "submitted") {
+        submitted.set(ev.id, ev.team_id);
+        if (ev.comments?.trim()) {
+          const list = feedbackByTeam.get(ev.team_id) ?? [];
+          list.push(ev.comments.trim());
+          feedbackByTeam.set(ev.team_id, list);
+        }
+      }
     const ids = [...submitted.keys()];
     if (ids.length) {
       const { data: scores } = await supabase
@@ -125,6 +138,7 @@ export async function publishResultsAndEmail(
 
   const standings = computeStandings(teams, rounds, evals, { maxCriterion });
   const origin = await getSiteOrigin();
+  const AWARDS = ["Winner", "Runner-up", "Second runner-up"] as const;
 
   const messages: EmailMessage[] = [];
   let noEmail = 0;
@@ -135,18 +149,27 @@ export async function publishResultsAndEmail(
       noEmail++;
       return;
     }
+    const rank = i + 1;
+    const overall = round1(s.overall);
     const resultsUrl = `${origin}/results/${team.result_token}`;
     const payload = {
       leaderName: team.team_leader_name || "Team leader",
       teamName: team.name,
+      teamCode: team.team_code,
+      track: team.track,
+      award:
+        overall > 0 && rank <= 3
+          ? AWARDS[rank - 1]
+          : ("Participant" as ResultEmailData["award"]),
       hackathonName: hk.name,
-      rank: i + 1,
+      rank,
       totalTeams: teams.length,
-      overall: round1(s.overall),
+      overall,
       rounds: rounds.map((r) => ({
         name: r.name,
         score: round1(s.roundAverages[r.id] ?? 0),
       })),
+      feedback: feedbackByTeam.get(team.id) ?? [],
       resultsUrl,
       certificateUrl: `${resultsUrl}/certificate`,
     };
