@@ -87,10 +87,14 @@ export async function sendCustomEmails(
     },
   });
 
-  if (failed > 0)
+  if (failed > 0) {
+    const firstError = results.find((r) => !r.ok)?.error;
     return {
-      error: `Sent ${sent} of ${messages.length}. ${failed} failed — check the SMTP settings.`,
+      error: `Sent ${sent} of ${messages.length}; ${failed} failed.${
+        firstError ? ` Error: ${firstError}` : " Check the SMTP settings."
+      }`,
     };
+  }
   return {
     message: `✓ Email sent successfully to ${sent} team leader${sent === 1 ? "" : "s"}.`,
   };

@@ -187,10 +187,14 @@ export async function publishResultsAndEmail(
         noEmail ? ` (${noEmail} team${noEmail === 1 ? "" : "s"})` : ""
       }, so nothing was emailed.`,
     };
-  if (failed > 0)
+  if (failed > 0) {
+    const firstError = results.find((r) => !r.ok)?.error;
     return {
-      error: `Results published and ${sent} of ${messages.length} emails sent. ${failed} failed — check the SMTP settings / App Password.`,
+      error: `Results published; ${sent} of ${messages.length} emails sent, ${failed} failed.${
+        firstError ? ` Error: ${firstError}` : " Check the SMTP settings / App Password."
+      }`,
     };
+  }
   return {
     message: `✓ Results published and emailed to ${sent} team leader${sent === 1 ? "" : "s"}.`,
   };

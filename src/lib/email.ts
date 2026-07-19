@@ -54,7 +54,10 @@ export async function sendEmail(
     await getTransporter().sendMail({ from: fromHeader(), to, subject, html });
     return { to, ok: true };
   } catch (e) {
-    return { to, ok: false, error: e instanceof Error ? e.message : "send failed" };
+    const error = e instanceof Error ? e.message : "send failed";
+    // Surface the real SMTP error in server logs (Vercel → Deployment → Logs).
+    console.error(`[email] send to ${to} failed:`, error);
+    return { to, ok: false, error };
   }
 }
 
