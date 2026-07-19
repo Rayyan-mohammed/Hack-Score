@@ -53,15 +53,17 @@ export function AppShell({
   return (
     <div className="flex flex-1 flex-col">
       <div className="flex flex-1">
-        {/* Sidebar — collapses into the drawer below md */}
-        <aside className="no-print hidden w-60 shrink-0 flex-col border-r border-border bg-surface md:flex">
-          <div className="flex h-20 items-center border-b border-border px-5">
+        {/* Sidebar — collapses into the drawer below md. Sticky + full viewport
+            height with self-start so it stays pinned while the main content
+            scrolls; only the nav scrolls if the menu ever exceeds the height. */}
+        <aside className="no-print sticky top-0 hidden h-screen w-60 shrink-0 flex-col self-start border-r border-border bg-surface md:flex">
+          <div className="flex h-20 shrink-0 items-center border-b border-border px-5">
             <Brand />
           </div>
-          <nav className="flex-1 space-y-1 p-3">
+          <nav className="flex-1 space-y-1 overflow-y-auto p-3">
             <NavLinks nav={nav} />
           </nav>
-          <div className="p-3">
+          <div className="shrink-0 p-3">
             <UserCard profile={profile} />
           </div>
         </aside>
