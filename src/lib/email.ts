@@ -42,16 +42,45 @@ function fromHeader() {
   return `${name} <${process.env.SMTP_USER}>`;
 }
 
+export type EmailMessage = {
+  to: string;
+  subject: string;
+  html: string;
+  /** Plain-text alternative — improves deliverability; generated if omitted. */
+  text?: string;
+};
+
+// Naive HTML→text fallback when a caller doesn't supply plain text.
+function htmlToText(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 /** Send one email. Never throws — returns ok/error so callers can report. */
-export async function sendEmail(
-  to: string,
-  subject: string,
-  html: string,
-): Promise<SendResult> {
+export async function sendEmail(msg: EmailMessage): Promise<SendResult> {
+  const { to, subject, html } = msg;
   if (!isEmailConfigured())
     return { to, ok: false, error: "Email is not configured (SMTP env vars missing)." };
   try {
-    await getTransporter().sendMail({ from: fromHeader(), to, subject, html });
+    await getTransporter().sendMail({
+      from: fromHeader(),
+      to,
+      subject,
+      html,
+      // Multipart (text + html) is far less likely to be flagged as spam.
+      text: msg.text ?? htmlToText(html),
+      replyTo: process.env.SMTP_USER,
+      headers: {
+        "List-Unsubscribe": `<mailto:${process.env.SMTP_USER}?subject=unsubscribe>`,
+      },
+    });
     return { to, ok: true };
   } catch (e) {
     const error = e instanceof Error ? e.message : "send failed";
@@ -62,16 +91,14 @@ export async function sendEmail(
 }
 
 /** Send many emails concurrently; returns a per-recipient result list. */
-export async function sendBulk(
-  messages: { to: string; subject: string; html: string }[],
-): Promise<SendResult[]> {
+export async function sendBulk(messages: EmailMessage[]): Promise<SendResult[]> {
   if (!isEmailConfigured())
     return messages.map((m) => ({
       to: m.to,
       ok: false,
       error: "Email is not configured (SMTP env vars missing).",
     }));
-  return Promise.all(messages.map((m) => sendEmail(m.to, m.subject, m.html)));
+  return Promise.all(messages.map((m) => sendEmail(m)));
 }
 
 /** Verify the SMTP connection/credentials (used by a test button/diagnostic). */

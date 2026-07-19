@@ -5,8 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { getSiteOrigin } from "@/lib/site";
-import { sendBulk, isEmailConfigured } from "@/lib/email";
-import { resultEmailHtml } from "@/lib/email-templates";
+import { sendBulk, isEmailConfigured, type EmailMessage } from "@/lib/email";
+import { resultEmailHtml, resultEmailText } from "@/lib/email-templates";
 import {
   computeStandings,
   round1,
@@ -126,7 +126,7 @@ export async function publishResultsAndEmail(
   const standings = computeStandings(teams, rounds, evals, { maxCriterion });
   const origin = await getSiteOrigin();
 
-  const messages: { to: string; subject: string; html: string }[] = [];
+  const messages: EmailMessage[] = [];
   let noEmail = 0;
   standings.forEach((s, i) => {
     const team = teams.find((t) => t.id === s.team.id);
@@ -136,23 +136,25 @@ export async function publishResultsAndEmail(
       return;
     }
     const resultsUrl = `${origin}/results/${team.result_token}`;
+    const payload = {
+      leaderName: team.team_leader_name || "Team leader",
+      teamName: team.name,
+      hackathonName: hk.name,
+      rank: i + 1,
+      totalTeams: teams.length,
+      overall: round1(s.overall),
+      rounds: rounds.map((r) => ({
+        name: r.name,
+        score: round1(s.roundAverages[r.id] ?? 0),
+      })),
+      resultsUrl,
+      certificateUrl: `${resultsUrl}/certificate`,
+    };
     messages.push({
       to: email,
-      subject: `🎉 Results Published — ${hk.name}`,
-      html: resultEmailHtml({
-        leaderName: team.team_leader_name || "Team leader",
-        teamName: team.name,
-        hackathonName: hk.name,
-        rank: i + 1,
-        totalTeams: teams.length,
-        overall: round1(s.overall),
-        rounds: rounds.map((r) => ({
-          name: r.name,
-          score: round1(s.roundAverages[r.id] ?? 0),
-        })),
-        resultsUrl,
-        certificateUrl: `${resultsUrl}/certificate`,
-      }),
+      subject: `Results Published — ${hk.name}`,
+      html: resultEmailHtml(payload),
+      text: resultEmailText(payload),
     });
   });
 
