@@ -7,7 +7,7 @@ import { getSessionUser, requireAdmin } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { validateHackathonDates } from "@/lib/date-validation";
 
-export type FormState = { error?: string };
+export type FormState = { error?: string; message?: string };
 
 function parseHackathon(formData: FormData) {
   return {
@@ -82,7 +82,7 @@ export async function updateHackathon(
 
   revalidatePath("/admin/hackathons");
   revalidatePath(`/admin/hackathons/${id}`);
-  return {};
+  return { message: "Changes saved successfully." };
 }
 
 // Soft delete: mark deleted_at instead of removing rows, so the hackathon and

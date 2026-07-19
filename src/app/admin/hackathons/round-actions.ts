@@ -8,7 +8,7 @@ import { logAudit } from "@/lib/audit";
 import { validateRoundWithinHackathon } from "@/lib/date-validation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type FormState = { error?: string };
+export type FormState = { error?: string; message?: string };
 
 // Reject round dates that fall outside the hackathon window. Returns an error
 // string (already audit-logged) or null when the dates are valid.
@@ -48,12 +48,15 @@ async function checkRoundDates(
 
 // Replace the set of teams participating in a round. An empty selection clears
 // the shortlist, which the app reads as "all hackathon teams participate".
-export async function setRoundParticipants(formData: FormData): Promise<void> {
+export async function setRoundParticipants(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
   const { user } = await requireAdmin();
   const round_id = String(formData.get("round_id") ?? "");
   const hackathon_id = String(formData.get("hackathon_id") ?? "");
   const teamIds = formData.getAll("team_ids").map(String).filter(Boolean);
-  if (!round_id) return;
+  if (!round_id) return { error: "Missing round." };
 
   const supabase = await createClient();
 
@@ -75,6 +78,11 @@ export async function setRoundParticipants(formData: FormData): Promise<void> {
 
   revalidatePath(`/admin/hackathons/${hackathon_id}/rounds/${round_id}`);
   revalidatePath("/admin/leaderboard");
+  return {
+    message: teamIds.length
+      ? `Shortlist saved — ${teamIds.length} team${teamIds.length === 1 ? "" : "s"}.`
+      : "Shortlist cleared — all teams participate.",
+  };
 }
 
 // ---- Rounds -------------------------------------------------------------
@@ -112,7 +120,7 @@ export async function createRound(
 
   if (error) return { error: error.message };
   revalidatePath(`/admin/hackathons/${hackathon_id}`);
-  return {};
+  return { message: "Round added." };
 }
 
 export async function updateRound(
@@ -152,7 +160,7 @@ export async function updateRound(
   if (error) return { error: error.message };
   revalidatePath(`/admin/hackathons/${hackathon_id}/rounds/${id}`);
   revalidatePath(`/admin/hackathons/${hackathon_id}`);
-  return {};
+  return { message: "Round saved successfully." };
 }
 
 export async function deleteRound(formData: FormData) {
@@ -220,7 +228,7 @@ export async function addCriterion(
   });
 
   revalidatePath(`/admin/hackathons/${hackathon_id}/rounds/${round_id}`);
-  return {};
+  return { message: "Criterion added." };
 }
 
 export async function deleteCriterion(formData: FormData) {

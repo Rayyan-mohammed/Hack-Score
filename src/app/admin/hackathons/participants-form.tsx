@@ -1,10 +1,12 @@
 "use client";
 
 import * as React from "react";
+import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { setRoundParticipants } from "./round-actions";
+import { Toast } from "@/components/ui/toast";
+import { setRoundParticipants, type FormState } from "./round-actions";
 
 export type ParticipantTeam = {
   id: string;
@@ -37,6 +39,10 @@ export function ParticipantsForm({
   hasShortlist: boolean;
   prevRoundName: string | null;
 }) {
+  const [state, formAction] = useActionState<FormState, FormData>(
+    setRoundParticipants,
+    {},
+  );
   const [checked, setChecked] = React.useState<Set<string>>(
     () => new Set(selected),
   );
@@ -53,7 +59,7 @@ export function ParticipantsForm({
   const clear = () => setChecked(new Set());
 
   return (
-    <form action={setRoundParticipants} className="space-y-4">
+    <form action={formAction} className="space-y-4">
       <input type="hidden" name="round_id" value={roundId} />
       <input type="hidden" name="hackathon_id" value={hackathonId} />
 
@@ -114,6 +120,8 @@ export function ParticipantsForm({
         </p>
       )}
 
+      <Toast tone="error" message={state.error} />
+      <Toast tone="success" message={state.message} />
       <SaveButton count={checked.size} />
     </form>
   );

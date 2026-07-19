@@ -2,12 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input, Label } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { getTeamEvaluationBreakdown } from "@/lib/evaluations";
-import { setTiebreakPriority } from "@/app/admin/teams/actions";
 import { TeamDetailView } from "./team-detail-view";
+import { TiebreakForm } from "./tiebreak-form";
 
 export default async function TeamDetailPage({
   params,
@@ -72,31 +70,10 @@ export default async function TeamDetailPage({
       {/* Manual tie-break override (used only when teams are otherwise level) */}
       <Card className="mt-6">
         <CardContent>
-          <form
-            action={setTiebreakPriority}
-            className="flex flex-col gap-3 sm:flex-row sm:items-end"
-          >
-            <input type="hidden" name="team_id" value={teamId} />
-            <div className="sm:max-w-[16rem]">
-              <Label htmlFor="priority">Tie-break priority (admin decision)</Label>
-              <Input
-                id="priority"
-                name="priority"
-                type="number"
-                min={1}
-                step={1}
-                placeholder="e.g. 1 = ranks first among ties"
-                defaultValue={teamMeta?.tiebreak_priority ?? ""}
-              />
-              <p className="mt-1.5 text-xs text-muted">
-                Lower ranks higher. Applies only when teams are still level after
-                automatic tie-breaks. Leave blank for none.
-              </p>
-            </div>
-            <Button type="submit" variant="outline">
-              Save priority
-            </Button>
-          </form>
+          <TiebreakForm
+            teamId={teamId}
+            initial={teamMeta?.tiebreak_priority ?? null}
+          />
         </CardContent>
       </Card>
     </div>

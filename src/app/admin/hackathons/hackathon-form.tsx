@@ -117,6 +117,7 @@ export function HackathonForm({
         </div>
       </div>
       <Toast tone="error" message={state.error} />
+      <Toast tone="success" message={state.message} />
       <SubmitButton label={submitLabel} />
     </form>
   );

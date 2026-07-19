@@ -116,6 +116,7 @@ export function RoundForm({
         Active round (judges can evaluate)
       </label>
       <Toast tone="error" message={state.error} />
+      <Toast tone="success" message={state.message} />
       <SaveButton />
     </form>
   );

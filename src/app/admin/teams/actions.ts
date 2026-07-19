@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
@@ -32,14 +31,18 @@ async function teamSizeBounds(
 
 // Manual tie-break override (feature 3, tier "admin decision"). Lower number
 // ranks higher among tied teams; blank clears the override.
-export async function setTiebreakPriority(formData: FormData): Promise<void> {
+export async function setTiebreakPriority(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
   const { user } = await requireAdmin();
   const team_id = String(formData.get("team_id") ?? "");
   const raw = String(formData.get("priority") ?? "").trim();
-  if (!team_id) return;
+  if (!team_id) return { error: "Missing team." };
 
   const priority = raw === "" ? null : Number(raw);
-  if (priority !== null && !Number.isFinite(priority)) return;
+  if (priority !== null && !Number.isFinite(priority))
+    return { error: "Priority must be a number." };
 
   const supabase = await createClient();
   await supabase
@@ -57,6 +60,9 @@ export async function setTiebreakPriority(formData: FormData): Promise<void> {
 
   revalidatePath("/admin/leaderboard");
   revalidatePath(`/admin/leaderboard/${team_id}`);
+  return {
+    message: priority === null ? "Tie-break priority cleared." : "Priority saved.",
+  };
 }
 
 export async function createTeam(
@@ -183,7 +189,8 @@ export async function updateTeam(
   });
 
   revalidatePath("/admin/teams");
-  redirect(`/admin/teams?h=${existing.hackathon_id}`);
+  revalidatePath(`/admin/teams/${id}/edit`);
+  return { message: "Team saved successfully." };
 }
 
 export async function deleteTeam(formData: FormData) {

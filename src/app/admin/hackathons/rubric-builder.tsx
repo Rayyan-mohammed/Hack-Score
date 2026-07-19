@@ -112,6 +112,7 @@ export function RubricBuilder({
         </div>
         <AddButton />
         <Toast tone="error" message={state.error} className="w-full" />
+        <Toast tone="success" message={state.message} className="w-full" />
       </form>
     </div>
   );
