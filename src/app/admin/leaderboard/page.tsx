@@ -23,6 +23,8 @@ import { Button } from "@/components/ui/button";
 import { HackathonSelect } from "./hackathon-select";
 import { TopTeamsChart } from "./top-teams-chart";
 import { PublishControl } from "./publish-control";
+import { SponsorStrip } from "./sponsor-strip";
+import type { Sponsor } from "../hackathons/sponsors-manager";
 
 // Allow up to 60s for bulk result emails (applies on Vercel Pro; Hobby caps
 // at 10s regardless).
@@ -51,6 +53,7 @@ export default async function LeaderboardPage({
   let evals: EvalRow[] = [];
   let judgesPerRound = 0;
   let leaderCount = 0;
+  let sponsors: Sponsor[] = [];
 
   const maxCriterion: Record<string, number> = {};
 
@@ -70,6 +73,13 @@ export default async function LeaderboardPage({
         .is("deleted_at", null)
         .order("sort_order", { ascending: true }),
     ]);
+    const { data: sp } = await supabase
+      .from("sponsors")
+      .select("id, name, logo_url, label, sort_order")
+      .eq("hackathon_id", selected)
+      .order("sort_order", { ascending: true });
+    sponsors = (sp as Sponsor[]) ?? [];
+
     teams = (t as TeamRow[]) ?? [];
     rounds = (r as RoundRow[]) ?? [];
     leaderCount = (
@@ -198,6 +208,9 @@ export default async function LeaderboardPage({
               </CardContent>
             </Card>
           </div>
+
+          {/* Sponsors — only shown on the leaderboard, and only if any exist */}
+          <SponsorStrip sponsors={sponsors} />
 
           <Card>
             <CardHeader>

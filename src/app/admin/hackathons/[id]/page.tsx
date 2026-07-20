@@ -6,6 +6,7 @@ import { DeleteConfirm } from "@/components/delete-confirm";
 import { HackathonForm } from "../hackathon-form";
 import { updateHackathon, deleteHackathon } from "../actions";
 import { RoundsSection } from "../rounds-section";
+import { SponsorsManager } from "../sponsors-manager";
 
 export default async function HackathonDetailPage({
   params,
@@ -24,12 +25,19 @@ export default async function HackathonDetailPage({
 
   if (!hackathon) notFound();
 
-  const { data: rounds } = await supabase
-    .from("rounds")
-    .select("id, name, is_active, starts_at, ends_at")
-    .eq("hackathon_id", id)
-    .is("deleted_at", null)
-    .order("sort_order", { ascending: true });
+  const [{ data: rounds }, { data: sponsors }] = await Promise.all([
+    supabase
+      .from("rounds")
+      .select("id, name, is_active, starts_at, ends_at")
+      .eq("hackathon_id", id)
+      .is("deleted_at", null)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("sponsors")
+      .select("id, name, logo_url, label, sort_order")
+      .eq("hackathon_id", id)
+      .order("sort_order", { ascending: true }),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -47,6 +55,22 @@ export default async function HackathonDetailPage({
             action={updateHackathon}
             values={hackathon}
             submitLabel="Save changes"
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Sponsors</CardTitle>
+          <p className="mt-1 text-sm text-muted">
+            Add, edit or remove sponsors at any time — they appear on the
+            leaderboard immediately. Order 1 is the title sponsor.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <SponsorsManager
+            hackathonId={hackathon.id}
+            sponsors={sponsors ?? []}
           />
         </CardContent>
       </Card>
