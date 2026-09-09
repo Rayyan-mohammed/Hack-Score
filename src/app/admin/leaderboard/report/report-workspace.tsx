@@ -139,6 +139,17 @@ export function ReportWorkspace({ bundle }: { bundle: ReportBundle }) {
       setDirty(true);
     };
 
+  // Optional details are omitted from the report rather than printed as "—",
+  // so say plainly which ones are still blank.
+  const missing = [
+    !config.academicYear.trim() && "academic year",
+    !config.refNumber.trim() && "reference number",
+    !config.address.trim() && "address",
+    !config.preparedBy.name.trim() && "prepared by",
+    !config.verifiedBy.name.trim() && "verified by",
+    !config.approvedBy.name.trim() && "approved by / HOD",
+  ].filter(Boolean) as string[];
+
   const onGeneratePdf = async () => {
     setError(null);
     setBusy(true);
@@ -286,6 +297,13 @@ export function ReportWorkspace({ bundle }: { bundle: ReportBundle }) {
             distribution and the full evaluator / team / component audit trail —
             built from the same evaluation data as the preview below.
           </p>
+
+          {missing.length > 0 && (
+            <Toast
+              tone="info"
+              message={`Not filled in yet: ${missing.join(", ")}. Blank details are left off the report rather than printed empty — fill them in if officials expect them.`}
+            />
+          )}
 
           {bundle.discrepancies.length > 0 && (
             <Toast

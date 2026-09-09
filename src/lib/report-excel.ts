@@ -218,6 +218,92 @@ export async function buildReportWorkbook(
   }
 
   // =========================================================================
+  // Event details — what was assessed, by whom, against what
+  // =========================================================================
+  addSheet(
+    "0.1 Rounds",
+    "Event details — rounds and evaluators",
+    [
+      { header: "#", width: 6, numeric: true },
+      { header: "Round", width: 24 },
+      { header: "Components", width: 13, numeric: true },
+      { header: "Maximum marks", width: 15, numeric: true },
+      { header: "Evaluators appointed", width: 50 },
+    ],
+    bundle.rounds.map((r, i) => [
+      i + 1,
+      r.name,
+      r.criteria.length,
+      r.maxMarks,
+      r.judgeNames.join(", ") || "—",
+    ]),
+    "portrait",
+  );
+
+  addSheet(
+    "0.2 Rubric",
+    "Event details — rubric components",
+    [
+      { header: "Round", width: 24 },
+      { header: "Component", width: 32 },
+      { header: "Maximum marks", width: 15, numeric: true },
+      { header: "Weight", width: 10, numeric: true },
+    ],
+    bundle.rounds.flatMap((r) =>
+      r.criteria.length
+        ? r.criteria.map((c) => [r.name, c.name, c.maxMarks, c.weight])
+        : [[r.name, "No components configured", 0, 0]],
+    ),
+    "portrait",
+  );
+
+  addSheet(
+    "0.3 Evaluators",
+    "Event details — evaluators",
+    [
+      { header: "#", width: 6, numeric: true },
+      { header: "Evaluator", width: 26 },
+      { header: "Email", width: 30 },
+      { header: "Rounds appointed", width: 40 },
+    ],
+    bundle.judges.map((j, i) => [
+      i + 1,
+      j.name,
+      j.email ?? "—",
+      bundle.rounds
+        .filter((r) => r.judgeNames.includes(j.name))
+        .map((r) => r.name)
+        .join(", ") || "—",
+    ]),
+    "portrait",
+  );
+
+  addSheet(
+    "0.4 Teams",
+    "Event details — participating teams",
+    [
+      { header: "Team code", width: 12 },
+      { header: "Team name", width: 26 },
+      { header: "College", width: 24 },
+      { header: "Track", width: 16 },
+      { header: "Team leader", width: 22 },
+      { header: "Leader email", width: 28 },
+      { header: "Members", width: 46 },
+      { header: "Team size", width: 11, numeric: true },
+    ],
+    bundle.teams.map((t) => [
+      t.code,
+      t.name,
+      t.college ?? "—",
+      t.track ?? "—",
+      t.leaderName ?? "—",
+      t.leaderEmail ?? "—",
+      t.members.join(", ") || "—",
+      1 + t.members.length,
+    ]),
+  );
+
+  // =========================================================================
   // LEVEL 1 — overall summary
   // =========================================================================
   const l1Columns: Column[] = [

@@ -116,6 +116,108 @@ export default async function ReportPage({
           </Card>
         )}
 
+        {/* ---- EVENT DETAILS ----------------------------------------------- */}
+        <SectionCard
+          title="Event details"
+          subtitle="Rounds, rubric, evaluators and participating teams — the structure the marks were awarded against."
+        >
+          <div className="space-y-2">
+            <h3 className="font-display text-sm font-semibold">Rounds</h3>
+            <Table>
+              <THead>
+                <TR>
+                  <TH>Round</TH>
+                  <TH className="text-right">Components</TH>
+                  <TH className="text-right">Max marks</TH>
+                  <TH>Evaluators appointed</TH>
+                </TR>
+              </THead>
+              <tbody>
+                {rounds.map((r) => (
+                  <TR key={r.id}>
+                    <TD className="font-medium">{r.name}</TD>
+                    <TD className="text-right tabular-nums text-muted">
+                      {r.criteria.length}
+                    </TD>
+                    <TD className="text-right tabular-nums text-muted">
+                      {fmt(r.maxMarks)}
+                    </TD>
+                    <TD className="text-muted">
+                      {r.judgeNames.join(", ") || "—"}
+                    </TD>
+                  </TR>
+                ))}
+              </tbody>
+            </Table>
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="font-display text-sm font-semibold">Evaluators</h3>
+            <Table>
+              <THead>
+                <TR>
+                  <TH>Evaluator</TH>
+                  <TH>Email</TH>
+                  <TH>Rounds appointed</TH>
+                </TR>
+              </THead>
+              <tbody>
+                {bundle.judges.map((j) => (
+                  <TR key={j.id}>
+                    <TD className="font-medium">{j.name}</TD>
+                    <TD className="text-muted">{j.email ?? "—"}</TD>
+                    <TD className="text-muted">
+                      {rounds
+                        .filter((r) => r.judgeNames.includes(j.name))
+                        .map((r) => r.name)
+                        .join(", ") || "—"}
+                    </TD>
+                  </TR>
+                ))}
+              </tbody>
+            </Table>
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="font-display text-sm font-semibold">
+              Participating teams
+            </h3>
+            <Table>
+              <THead>
+                <TR>
+                  <TH>Team</TH>
+                  <TH>College</TH>
+                  <TH>Track</TH>
+                  <TH>Leader</TH>
+                  <TH>Members</TH>
+                  <TH className="text-right">Size</TH>
+                </TR>
+              </THead>
+              <tbody>
+                {bundle.teams.map((t) => (
+                  <TR key={t.id}>
+                    <TD>
+                      <span className="font-mono text-xs text-muted">
+                        {t.code}
+                      </span>{" "}
+                      <span className="font-medium">{t.name}</span>
+                    </TD>
+                    <TD className="text-muted">{t.college ?? "—"}</TD>
+                    <TD className="text-muted">{t.track ?? "—"}</TD>
+                    <TD className="text-muted">{t.leaderName ?? "—"}</TD>
+                    <TD className="max-w-[20rem] text-xs text-muted">
+                      {t.members.join(", ") || "—"}
+                    </TD>
+                    <TD className="text-right tabular-nums text-muted">
+                      {1 + t.members.length}
+                    </TD>
+                  </TR>
+                ))}
+              </tbody>
+            </Table>
+          </div>
+        </SectionCard>
+
         {/* ---- LEVEL 1 ---------------------------------------------------- */}
         <SectionCard
           title="Section 1 — Overall results summary"

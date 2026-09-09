@@ -39,6 +39,8 @@ export type ReportRound = {
   criteria: ReportCriterion[];
   /** Sum of the round's criterion maximums — the scale one judge marks on. */
   maxMarks: number;
+  /** Evaluators assigned to the round, for the event-details section. */
+  judgeNames: string[];
 };
 
 export type ReportTeam = {
@@ -47,6 +49,10 @@ export type ReportTeam = {
   name: string;
   track: string | null;
   college: string | null;
+  leaderName: string | null;
+  leaderEmail: string | null;
+  /** Team-mates other than the leader, in the order they were entered. */
+  members: string[];
 };
 
 export type ReportJudge = { id: string; name: string; email: string | null };
@@ -241,7 +247,9 @@ export async function buildReportBundle(
   const [{ data: teamData }, { data: roundData }] = await Promise.all([
     supabase
       .from("teams")
-      .select("id, team_code, name, track, college, tiebreak_priority")
+      .select(
+        "id, team_code, name, track, college, tiebreak_priority, team_leader_name, team_leader_email",
+      )
       .eq("hackathon_id", hackathonId)
       .is("deleted_at", null)
       .order("team_code", { ascending: true }),
@@ -293,6 +301,17 @@ export async function buildReportBundle(
   }[];
   const evaluations = (evalRes.data ?? []) as unknown as RawEval[];
 
+  // Participant names, so the report can list who actually took part.
+  const memberRows: { team_id: string; name: string }[] = [];
+  const teamIds = rawTeams.map((t) => t.id);
+  for (let i = 0; i < teamIds.length; i += 200) {
+    const { data } = await supabase
+      .from("team_members")
+      .select("team_id, name")
+      .in("team_id", teamIds.slice(i, i + 200));
+    memberRows.push(...((data ?? []) as { team_id: string; name: string }[]));
+  }
+
   const submittedEvals = evaluations.filter((e) => e.status === "submitted");
   const evalIds = submittedEvals.map((e) => e.id);
 
@@ -316,6 +335,9 @@ export async function buildReportBundle(
     name: t.name,
     track: t.track,
     college: t.college,
+    leaderName: t.team_leader_name ?? null,
+    leaderEmail: t.team_leader_email ?? null,
+    members: memberRows.filter((m) => m.team_id === t.id).map((m) => m.name),
   }));
   const teamById = new Map(teams.map((t) => [t.id, t]));
 
@@ -333,6 +355,10 @@ export async function buildReportBundle(
       name: r.name,
       criteria,
       maxMarks: criteria.reduce((s, c) => s + c.maxMarks, 0),
+      judgeNames: assignments
+        .filter((a) => a.round_id === r.id)
+        .map((a) => a.profiles?.full_name || a.profiles?.email || "Unknown evaluator")
+        .sort((x, y) => x.localeCompare(y)),
     };
   });
   const roundById = new Map(rounds.map((r) => [r.id, r]));
