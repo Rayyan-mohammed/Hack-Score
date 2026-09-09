@@ -56,7 +56,13 @@ export function MaskedMarksInput({
   const [shown, setShown] = React.useState(reveal);
 
   // Follow the group toggle, while leaving per-field control intact after it.
-  React.useEffect(() => setShown(reveal), [reveal]);
+  // Adjusting during render (rather than in an effect) is React's own pattern
+  // for state that has to track a prop change — no extra pass, no flash.
+  const [lastReveal, setLastReveal] = React.useState(reveal);
+  if (reveal !== lastReveal) {
+    setLastReveal(reveal);
+    setShown(reveal);
+  }
 
   const onChange = (next: string) => {
     // Digits and at most one decimal point — the numeric input type isn't

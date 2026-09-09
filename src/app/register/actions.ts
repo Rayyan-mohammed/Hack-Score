@@ -8,15 +8,19 @@ import {
   type RegistrationValues,
 } from "@/lib/registration-form";
 import {
+  createTeamFromRegistration,
   draftDeadline,
   getRegistrationHackathon,
   registrationsConfigured,
+  teamSizeBounds,
 } from "@/lib/registrations";
 
 export type RegistrationResult = {
   ok: boolean;
   error?: string;
   message?: string;
+  /** Code of the team created from this registration, when one was made. */
+  teamCode?: string;
   /** The participant's private token — the draft link and, later, the receipt. */
   token?: string;
   /** ISO deadline the countdown runs against. */
@@ -39,6 +43,8 @@ const LIMITS: Record<keyof RegistrationValues, number> = {
   college_email: 160,
   problem_statement_code: 40,
   problem_statement: 2000,
+  team_name: 80,
+  members: 600,
 };
 
 /** Trim and cap every field. Everything here arrives from an anonymous POST. */
@@ -193,7 +199,7 @@ export async function submitRegistration(
   const gate = await openHackathonOrError(hackathonId);
   if ("error" in gate) return { ok: false, error: gate.error };
 
-  const invalid = validateRegistration(values);
+  const invalid = validateRegistration(values, teamSizeBounds(gate.hackathon));
   if (invalid) return { ok: false, error: invalid };
 
   // Save first: this creates the draft if the participant never triggered an
@@ -230,13 +236,22 @@ export async function submitRegistration(
 
   if (error) return { ok: false, error: error.message };
 
+  // Registered participants become a team straight away, so organisers don't
+  // have to re-key them. A failure here is reported but never undoes the
+  // submission — an admin can add the team by hand from the Registrations page.
+  const team = await createTeamFromRegistration(gate.hackathon, saved.token);
+
   revalidatePath("/admin/registrations");
+  if (team.teamCode) revalidatePath("/admin/teams");
   return {
     ok: true,
     token: saved.token,
     status: "submitted",
     locked: true,
-    message: "Submission recorded.",
+    teamCode: team.teamCode,
+    message: team.teamCode
+      ? `Submission recorded. Your team is ${team.teamCode}.`
+      : "Submission recorded.",
   };
 }
 
@@ -255,7 +270,7 @@ export async function autoSubmitDraft(
   const supabase = createAdminClient();
   const { data: row } = await supabase
     .from("registrations")
-    .select("id, status, draft_expires_at")
+    .select("id, hackathon_id, status, draft_expires_at")
     .eq("token", token)
     .maybeSingle();
 
@@ -284,12 +299,21 @@ export async function autoSubmitDraft(
 
   if (error) return { ok: false, error: error.message };
 
+  // An auto-submitted registration still becomes a team when it holds a valid
+  // team name and roster; an incomplete one is left for an admin to finish.
+  const hackathon = await getRegistrationHackathon(row.hackathon_id);
+  const team = hackathon
+    ? await createTeamFromRegistration(hackathon, token)
+    : ({} as { teamCode?: string });
+
   revalidatePath("/admin/registrations");
+  if (team.teamCode) revalidatePath("/admin/teams");
   return {
     ok: true,
     token,
     status: "submitted",
     locked: true,
+    teamCode: team.teamCode,
     message: "Your draft was submitted automatically.",
   };
 }

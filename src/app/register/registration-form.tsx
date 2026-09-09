@@ -12,6 +12,7 @@ import {
   validateRegistration,
   type RegistrationValues,
 } from "@/lib/registration-form";
+import { parseMembers, validateTeamSize } from "@/lib/team-validation";
 import type { ProblemStatement } from "@/lib/registrations";
 import { autoSubmitDraft, saveDraft, submitRegistration } from "./actions";
 
@@ -87,12 +88,17 @@ function CountdownBanner({
 export function RegistrationForm({
   hackathonId,
   problemStatements,
+  minSize,
+  maxSize,
   initialValues,
   initialToken,
   initialExpiresAt,
 }: {
   hackathonId: string;
   problemStatements: ProblemStatement[];
+  /** The hackathon's team-size bounds — the same rule admins get. */
+  minSize: number;
+  maxSize: number;
   initialValues?: RegistrationValues;
   initialToken?: string | null;
   initialExpiresAt?: string | null;
@@ -114,23 +120,28 @@ export function RegistrationForm({
 
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [savedAt, setSavedAt] = useState<number | null>(
-    initialToken ? Date.now() : null,
-  );
+  // Set on the first successful save of this session; a resumed draft simply
+  // shows "changes save automatically" until then.
+  const [savedAt, setSavedAt] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
-  // Latest values, readable from timers without re-arming them on every keystroke.
+  // Latest values, readable from timers without re-arming them on every
+  // keystroke. Written in an effect (never during render) so the refs stay a
+  // side-channel for the autosave timers rather than something React renders.
   const valuesRef = useRef(values);
-  valuesRef.current = values;
   const tokenRef = useRef(token);
-  tokenRef.current = token;
   const dirtyRef = useRef(dirty);
-  dirtyRef.current = dirty;
   const inFlight = useRef(false);
   const finalising = useRef(false);
+
+  useEffect(() => {
+    valuesRef.current = values;
+    tokenRef.current = token;
+    dirtyRef.current = dirty;
+  });
 
   const remaining = expiresAt
     ? new Date(expiresAt).getTime() - now
@@ -258,7 +269,7 @@ export function RegistrationForm({
     setError(null);
     setNotice(null);
 
-    const invalid = validateRegistration(values);
+    const invalid = validateRegistration(values, { min: minSize, max: maxSize });
     if (invalid) {
       setError(invalid);
       return;
@@ -291,6 +302,12 @@ export function RegistrationForm({
       setSubmitting(false);
     }
   };
+
+  // Live team-size feedback: the leader (this registrant) plus listed members.
+  const memberCount = parseMembers(values.members).length;
+  const teamTotal = 1 + memberCount;
+  const sizeError = validateTeamSize(memberCount, minSize, maxSize);
+  const sizeOk = !sizeError;
 
   const busy = submitting || expired;
   const picked =
@@ -377,6 +394,46 @@ export function RegistrationForm({
                   onChange={(e) => setField("college_email", e.target.value)}
                   required
                 />
+              </div>
+            </div>
+
+            <div className="space-y-4 border-t border-border pt-4">
+              <div>
+                <Label htmlFor="team_name">Team name</Label>
+                <Input
+                  id="team_name"
+                  name="team_name"
+                  minLength={3}
+                  placeholder="Byte Squad"
+                  value={values.team_name}
+                  disabled={busy}
+                  onChange={(e) => setField("team_name", e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="members">Team members</Label>
+                <Textarea
+                  id="members"
+                  name="members"
+                  value={values.members}
+                  disabled={busy}
+                  onChange={(e) => setField("members", e.target.value)}
+                  placeholder="Sneha Kulkarni; Rohit Bansal; Pooja Singh"
+                />
+                <p className="mt-1 text-xs text-subtle">
+                  Separate members with a semicolon (;). You are counted as the
+                  team leader automatically.
+                </p>
+                <p
+                  className={`mt-1.5 text-xs font-medium ${
+                    sizeOk ? "text-success" : "text-danger"
+                  }`}
+                >
+                  {sizeOk ? "✓ " : "✕ "}
+                  Team size: {teamTotal} of {minSize}–{maxSize} members
+                  {!sizeOk ? ` — ${sizeError}` : ""}
+                </p>
               </div>
             </div>
 

@@ -8,6 +8,8 @@ import { missingFields } from "@/lib/registration-form";
 import {
   getRegistrationByToken,
   getRegistrationHackathon,
+  getRegistrationTeam,
+  teamSizeBounds,
   toValues,
 } from "@/lib/registrations";
 
@@ -91,8 +93,12 @@ export default async function RegistrationSuccessPage({
     redirect(`/register/${registration.hackathon_id}?draft=${token}`);
 
   const hackathon = await getRegistrationHackathon(registration.hackathon_id);
+  const team = await getRegistrationTeam(registration.team_id);
   const values = toValues(registration);
-  const gaps = missingFields(values);
+  const gaps = missingFields(
+    values,
+    hackathon ? teamSizeBounds(hackathon) : undefined,
+  );
 
   const resources = [
     hackathon?.whatsapp_group_url && {
@@ -182,6 +188,7 @@ export default async function RegistrationSuccessPage({
         </p>
         <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
           <Badge tone="success">Submitted</Badge>
+          {team && <Badge tone="violet">Team {team.team_code}</Badge>}
           {registration.auto_submitted && (
             <Badge tone="warning">Auto-submitted</Badge>
           )}
@@ -200,6 +207,17 @@ export default async function RegistrationSuccessPage({
             message="Your one-hour editing window closed, so this form was submitted automatically. It can no longer be edited."
           />
         )}
+        {team ? (
+          <Toast
+            tone="success"
+            message={`Your team has been added to the event as ${team.team_code} — ${team.name}.`}
+          />
+        ) : (
+          <Toast
+            tone="info"
+            message="Your registration is recorded, but a team could not be created from it automatically (usually an incomplete team list). The organisers will add your team manually."
+          />
+        )}
         {gaps.length > 0 && (
           <Toast
             tone="error"
@@ -212,7 +230,18 @@ export default async function RegistrationSuccessPage({
             <CardTitle>What you submitted</CardTitle>
           </CardHeader>
           <CardContent className="pt-3">
-            <Row label="Name" value={values.full_name} />
+            <Row label="Team name" value={values.team_name} />
+            <Row
+              label="Team members"
+              value={
+                values.members
+                  ? [values.full_name, values.members]
+                      .filter(Boolean)
+                      .join("; ")
+                  : values.full_name
+              }
+            />
+            <Row label="Name (team leader)" value={values.full_name} />
             <Row label="SAP ID" value={values.sap_id} />
             <Row label="Mobile number" value={values.mobile} />
             <Row label="College email ID" value={values.college_email} />

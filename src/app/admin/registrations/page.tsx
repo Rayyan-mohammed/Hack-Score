@@ -14,7 +14,13 @@ import {
   HackathonSelect,
   RegistrationSettingsForm,
 } from "./registrations-panel";
-import { deleteProblemStatement, deleteRegistration } from "./actions";
+import {
+  createTeamForRegistration,
+  deleteProblemStatement,
+  deleteRegistration,
+} from "./actions";
+import { Toast } from "@/components/ui/toast";
+import { Button } from "@/components/ui/button";
 
 type HackathonRow = {
   id: string;
@@ -28,9 +34,9 @@ type HackathonRow = {
 export default async function RegistrationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ h?: string }>;
+  searchParams: Promise<{ h?: string; msg?: string; err?: string }>;
 }) {
-  const { h } = await searchParams;
+  const { h, msg, err } = await searchParams;
   const supabase = await createClient();
 
   const { data: hackathons } = await supabase
@@ -59,17 +65,33 @@ export default async function RegistrationsPage({
       </div>
     );
 
-  const [registrations, problemStatements] = await Promise.all([
-    listRegistrations(hackathon.id),
-    listProblemStatements(hackathon.id),
-  ]);
+  const [registrations, problemStatements, { data: teamRows }] =
+    await Promise.all([
+      listRegistrations(hackathon.id),
+      listProblemStatements(hackathon.id),
+      supabase
+        .from("teams")
+        .select("id, team_code")
+        .eq("hackathon_id", hackathon.id)
+        .is("deleted_at", null),
+    ]);
+
+  // Registrations carry a team_id once they have been turned into a team.
+  const teamCodeById = new Map(
+    ((teamRows as { id: string; team_code: string }[]) ?? []).map((t) => [
+      t.id,
+      t.team_code,
+    ]),
+  );
 
   const origin = await getSiteOrigin();
   const formUrl = `${origin}/register/${hackathon.id}`;
 
   const submitted = registrations.filter((r) => r.status === "submitted");
   const drafts = registrations.filter((r) => r.status === "draft");
-  const auto = submitted.filter((r) => r.auto_submitted);
+  const withTeams = registrations.filter(
+    (r) => r.team_id && teamCodeById.has(r.team_id),
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -79,11 +101,14 @@ export default async function RegistrationsPage({
         action={<HackathonSelect hackathons={list} selected={selected} />}
       />
 
+      <Toast tone="success" message={msg} />
+      <Toast tone="error" message={err} />
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Total" value={registrations.length} />
         <StatCard label="Submitted" value={submitted.length} />
         <StatCard label="Drafts in progress" value={drafts.length} />
-        <StatCard label="Auto-submitted" value={auto.length} />
+        <StatCard label="Teams created" value={withTeams} />
       </div>
 
       <Card>
@@ -119,6 +144,7 @@ export default async function RegistrationsPage({
                   <TH>SAP ID</TH>
                   <TH>Contact</TH>
                   <TH>Problem statement</TH>
+                  <TH>Team</TH>
                   <TH>Status</TH>
                   <TH></TH>
                 </TR>
@@ -143,6 +169,39 @@ export default async function RegistrationsPage({
                       <span className="block truncate text-xs">
                         {r.problem_statement || "—"}
                       </span>
+                    </TD>
+                    <TD>
+                      {r.team_id && teamCodeById.get(r.team_id) ? (
+                        <div className="flex flex-col items-start gap-0.5">
+                          <Badge tone="violet">
+                            {teamCodeById.get(r.team_id)}
+                          </Badge>
+                          <span className="text-xs text-subtle">
+                            {r.team_name || "—"}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-start gap-1">
+                          <span className="text-xs text-muted">
+                            {r.team_name || "—"}
+                          </span>
+                          {r.status === "submitted" ? (
+                            <form action={createTeamForRegistration}>
+                              <input type="hidden" name="id" value={r.id} />
+                              <input
+                                type="hidden"
+                                name="hackathon_id"
+                                value={hackathon.id}
+                              />
+                              <Button variant="ghost" size="sm" type="submit">
+                                Create team
+                              </Button>
+                            </form>
+                          ) : (
+                            <span className="text-xs text-subtle">draft</span>
+                          )}
+                        </div>
+                      )}
                     </TD>
                     <TD>
                       <div className="flex flex-col items-start gap-1">

@@ -2,7 +2,11 @@
 // actions that persist it. Keep this file free of server-only imports — it is
 // bundled into the browser.
 
-import { isValidEmail } from "@/lib/team-validation";
+import {
+  isValidEmail,
+  parseMembers,
+  validateTeamSize,
+} from "@/lib/team-validation";
 
 /** How long a participant may keep editing their draft before it auto-submits. */
 export const DRAFT_WINDOW_MINUTES = 60;
@@ -15,6 +19,10 @@ export type RegistrationValues = {
   college_email: string;
   problem_statement_code: string;
   problem_statement: string;
+  /** Team the registrant leads. On submit this becomes a real team row. */
+  team_name: string;
+  /** Team-mates, semicolon separated — same format as the CSV import. */
+  members: string;
 };
 
 export const EMPTY_REGISTRATION: RegistrationValues = {
@@ -24,7 +32,12 @@ export const EMPTY_REGISTRATION: RegistrationValues = {
   college_email: "",
   problem_statement_code: "",
   problem_statement: "",
+  team_name: "",
+  members: "",
 };
+
+/** The hackathon's team-size bounds, applied to the registration form too. */
+export type TeamSizeBounds = { min: number; max: number };
 
 /** 10–15 digits, optional leading +, spaces/dashes ignored. */
 export function isValidMobile(raw: string): boolean {
@@ -41,9 +54,13 @@ export function isValidSapId(raw: string): boolean {
  * Field-level validation for a *manual* submit. Returns the first problem, or
  * null when the form is complete. Auto-submitted drafts skip this on purpose —
  * the one-hour window closing must never silently discard what was typed.
+ *
+ * `bounds` applies the hackathon’s own min/max team size, the same rule the
+ * admin Add-team form and the CSV import enforce.
  */
 export function validateRegistration(
   v: RegistrationValues,
+  bounds?: TeamSizeBounds,
 ): string | null {
   if (v.full_name.trim().length < 2) return "Enter your full name.";
   if (!isValidSapId(v.sap_id)) return "Enter a valid SAP ID (6–15 digits).";
@@ -51,6 +68,16 @@ export function validateRegistration(
     return "Enter a valid mobile number (10–15 digits).";
   if (!isValidEmail(v.college_email))
     return "Enter a valid college email ID.";
+  if (v.team_name.trim().length < 3)
+    return "Enter a team name (at least 3 characters).";
+  if (bounds) {
+    const sizeError = validateTeamSize(
+      parseMembers(v.members).length,
+      bounds.min,
+      bounds.max,
+    );
+    if (sizeError) return sizeError;
+  }
   if (!v.problem_statement_code.trim())
     return "Select or enter a problem statement ID.";
   if (v.problem_statement.trim().length < 3)
@@ -60,12 +87,18 @@ export function validateRegistration(
 
 /** Which required fields are still blank/invalid — shown on the confirmation
  *  page when a draft was auto-submitted half-finished. */
-export function missingFields(v: RegistrationValues): string[] {
+export function missingFields(
+  v: RegistrationValues,
+  bounds?: TeamSizeBounds,
+): string[] {
   const gaps: string[] = [];
   if (v.full_name.trim().length < 2) gaps.push("Name");
   if (!isValidSapId(v.sap_id)) gaps.push("SAP ID");
   if (!isValidMobile(v.mobile)) gaps.push("Mobile number");
   if (!isValidEmail(v.college_email)) gaps.push("College email ID");
+  if (v.team_name.trim().length < 3) gaps.push("Team name");
+  if (bounds && validateTeamSize(parseMembers(v.members).length, bounds.min, bounds.max))
+    gaps.push("Team members");
   if (!v.problem_statement_code.trim()) gaps.push("Problem statement ID");
   if (v.problem_statement.trim().length < 3) gaps.push("Problem statement");
   return gaps;

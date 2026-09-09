@@ -11,6 +11,7 @@ import {
   DRAFT_WINDOW_MS,
   type RegistrationValues,
 } from "@/lib/registration-form";
+import { parseMembers, validateTeamSize } from "@/lib/team-validation";
 
 export type ProblemStatement = {
   id: string;
@@ -30,6 +31,9 @@ export type RegistrationRow = {
   problem_statement_id: string | null;
   problem_statement_code: string | null;
   problem_statement: string | null;
+  team_name: string | null;
+  members: string | null;
+  team_id: string | null;
   status: "draft" | "submitted";
   auto_submitted: boolean;
   draft_expires_at: string;
@@ -48,15 +52,18 @@ export type RegistrationHackathon = {
   whatsapp_group_url: string | null;
   ppt_template_url: string | null;
   resources_url: string | null;
+  min_team_size: number;
+  max_team_size: number;
 };
 
 const HACKATHON_COLUMNS =
   "id, name, description, venue, start_date, end_date, registration_open, " +
-  "whatsapp_group_url, ppt_template_url, resources_url";
+  "whatsapp_group_url, ppt_template_url, resources_url, min_team_size, max_team_size";
 
 const REGISTRATION_COLUMNS =
   "id, hackathon_id, token, full_name, sap_id, mobile, college_email, " +
-  "problem_statement_id, problem_statement_code, problem_statement, status, " +
+  "problem_statement_id, problem_statement_code, problem_statement, " +
+  "team_name, members, team_id, status, " +
   "auto_submitted, draft_expires_at, submitted_at, created_at";
 
 /** The registration store is unusable without the service role — say so once. */
@@ -188,6 +195,20 @@ export async function listRegistrations(
   return (data as unknown as RegistrationRow[]) ?? [];
 }
 
+/** The team a registration was turned into, if any. */
+export async function getRegistrationTeam(
+  teamId: string | null,
+): Promise<{ team_code: string; name: string } | null> {
+  if (!teamId || !registrationsConfigured()) return null;
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from("teams")
+    .select("team_code, name")
+    .eq("id", teamId)
+    .maybeSingle();
+  return (data as unknown as { team_code: string; name: string }) ?? null;
+}
+
 /** Row -> the shape the form and validators work with. */
 export function toValues(row: RegistrationRow): RegistrationValues {
   return {
@@ -197,10 +218,130 @@ export function toValues(row: RegistrationRow): RegistrationValues {
     college_email: row.college_email ?? "",
     problem_statement_code: row.problem_statement_code ?? "",
     problem_statement: row.problem_statement ?? "",
+    team_name: row.team_name ?? "",
+    members: row.members ?? "",
+  };
+}
+
+/** The hackathon's team-size bounds, as the registration form applies them. */
+export function teamSizeBounds(h: RegistrationHackathon): {
+  min: number;
+  max: number;
+} {
+  return {
+    min: Number(h.min_team_size ?? 1),
+    max: Number(h.max_team_size ?? 6),
   };
 }
 
 /** Deadline for a draft created now. */
 export function draftDeadline(from: Date = new Date()): string {
   return new Date(from.getTime() + DRAFT_WINDOW_MS).toISOString();
+}
+
+/**
+ * Turn a submitted registration into a real team.
+ *
+ * The registrant is the team leader, so the team is leader + the members they
+ * listed — the same shape (and the same size rule) as the admin Add-team form
+ * and the CSV import. Idempotent: a registration that already has `team_id`
+ * is left alone, so a retry or a late auto-submit can't create a duplicate.
+ *
+ * Returns the team code on success, or a reason it was skipped. Never throws:
+ * the registration itself is already recorded and must not be lost because
+ * team creation failed.
+ */
+export async function createTeamFromRegistration(
+  hackathon: RegistrationHackathon,
+  token: string,
+): Promise<{ teamCode?: string; error?: string }> {
+  const supabase = createAdminClient();
+
+  const { data: registration } = await supabase
+    .from("registrations")
+    .select(
+      "id, team_id, full_name, college_email, team_name, members, problem_statement",
+    )
+    .eq("token", token)
+    .maybeSingle();
+
+  if (!registration) return { error: "Registration not found." };
+  if (registration.team_id) {
+    const { data: existing } = await supabase
+      .from("teams")
+      .select("team_code")
+      .eq("id", registration.team_id)
+      .maybeSingle();
+    return { teamCode: existing?.team_code };
+  }
+
+  const teamName = String(registration.team_name ?? "").trim();
+  if (teamName.length < 3) return { error: "No team name was given." };
+
+  const members = parseMembers(registration.members);
+  const { min, max } = teamSizeBounds(hackathon);
+  const sizeError = validateTeamSize(members.length, min, max);
+  if (sizeError) return { error: sizeError };
+
+  // Next free code for this hackathon: T01, T02, … Codes are only unique among
+  // live teams, so a soft-deleted code is free to reuse.
+  const { data: existingTeams } = await supabase
+    .from("teams")
+    .select("team_code")
+    .eq("hackathon_id", hackathon.id)
+    .is("deleted_at", null);
+  const taken = new Set(
+    (existingTeams ?? []).map((t) => String(t.team_code).toUpperCase()),
+  );
+
+  const nextCode = (offset: number) => {
+    let n = 1;
+    let skipped = 0;
+    for (;;) {
+      const code = `T${String(n).padStart(2, "0")}`;
+      if (!taken.has(code)) {
+        if (skipped === offset) return code;
+        skipped++;
+      }
+      n++;
+      if (n > 9999) return `T${Date.now().toString().slice(-6)}`;
+    }
+  };
+
+  // Two people can submit at the same instant; retry past a code collision.
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const team_code = nextCode(attempt);
+    const { data: team, error } = await supabase
+      .from("teams")
+      .insert({
+        hackathon_id: hackathon.id,
+        team_code,
+        name: teamName,
+        team_leader_name: registration.full_name,
+        team_leader_email: registration.college_email,
+        problem_statement: registration.problem_statement,
+      })
+      .select("id, team_code")
+      .single();
+
+    if (error) {
+      if (error.code === "23505") continue; // code taken in the meantime
+      return { error: error.message };
+    }
+    if (!team) return { error: "Could not create the team." };
+
+    if (members.length > 0)
+      await supabase
+        .from("team_members")
+        .insert(members.map((m) => ({ team_id: team.id, name: m })));
+
+    await supabase
+      .from("registrations")
+      .update({ team_id: team.id })
+      .eq("id", registration.id);
+
+      return { teamCode: team.team_code };
+  }
+
+  return { error: "Could not allocate a team code — please contact the organisers." };
 }

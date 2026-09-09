@@ -1,9 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import {
+  createTeamFromRegistration,
+  getRegistrationHackathon,
+} from "@/lib/registrations";
 
 export type FormState = { error?: string; message?: string };
 
@@ -155,6 +160,58 @@ export async function deleteProblemStatement(formData: FormData) {
   });
 
   revalidatePath("/admin/registrations");
+}
+
+/**
+ * Create the team for a submitted registration that didn't get one — usually
+ * because the roster was incomplete when the one-hour window closed. Reuses
+ * exactly the same routine as the public form, so a manually created team is
+ * identical to an automatic one. Feedback comes back as a query param, since
+ * this is a plain row-level form.
+ */
+export async function createTeamForRegistration(formData: FormData) {
+  const { user } = await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const hackathonId = String(formData.get("hackathon_id") ?? "");
+  const back = `/admin/registrations?h=${hackathonId}`;
+  if (!id) redirect(back);
+
+  const supabase = await createClient();
+  const { data: registration } = await supabase
+    .from("registrations")
+    .select("token, hackathon_id, status")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!registration)
+    redirect(`${back}&err=${encodeURIComponent("Registration not found.")}`);
+  if (registration.status !== "submitted")
+    redirect(
+      `${back}&err=${encodeURIComponent("Only submitted registrations can become teams.")}`,
+    );
+
+  const hackathon = await getRegistrationHackathon(registration.hackathon_id);
+  if (!hackathon)
+    redirect(`${back}&err=${encodeURIComponent("Hackathon not found.")}`);
+
+  const result = await createTeamFromRegistration(hackathon, registration.token);
+
+  await logAudit({
+    actorId: user.id,
+    action: "registration.create_team",
+    entity: "registration",
+    entityId: id,
+    meta: { teamCode: result.teamCode, error: result.error },
+  });
+
+  revalidatePath("/admin/registrations");
+  revalidatePath("/admin/teams");
+
+  redirect(
+    result.teamCode
+      ? `${back}&msg=${encodeURIComponent(`Team ${result.teamCode} created.`)}`
+      : `${back}&err=${encodeURIComponent(result.error ?? "Could not create the team.")}`,
+  );
 }
 
 /** Remove a registration outright (junk drafts, duplicates). */

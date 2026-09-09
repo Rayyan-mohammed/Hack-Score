@@ -10,6 +10,7 @@ import {
   getRegistrationByToken,
   getRegistrationHackathon,
   listProblemStatements,
+  teamSizeBounds,
   toValues,
 } from "@/lib/registrations";
 import { RegistrationForm } from "../registration-form";
@@ -50,6 +51,7 @@ export default async function RegisterPage({
   const mine = found?.status === "draft" ? found : null;
 
   const problemStatements = await listProblemStatements(hackathonId);
+  const bounds = teamSizeBounds(hackathon);
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-10">
@@ -91,7 +93,11 @@ export default async function RegisterPage({
           <p className="text-center text-sm text-muted">
             Your answers are saved as a draft as you type. You have{" "}
             {DRAFT_WINDOW_MINUTES} minutes to finish — after that the form is
-            submitted automatically and can no longer be edited.
+            submitted automatically and can no longer be edited. Teams must have{" "}
+            {bounds.min === bounds.max
+              ? `exactly ${bounds.min}`
+              : `${bounds.min}–${bounds.max}`}{" "}
+            members, including you.
           </p>
 
           {/* Resumed from this device's cookie rather than a personal link —
@@ -113,6 +119,8 @@ export default async function RegisterPage({
           <RegistrationForm
             hackathonId={hackathonId}
             problemStatements={problemStatements}
+            minSize={bounds.min}
+            maxSize={bounds.max}
             initialValues={mine ? toValues(mine) : undefined}
             initialToken={mine?.token ?? null}
             initialExpiresAt={mine?.draft_expires_at ?? null}
