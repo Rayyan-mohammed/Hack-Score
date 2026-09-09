@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { PrintButton } from "@/app/admin/leaderboard/report/print-button";
+import { PrintButton } from "@/components/print-button";
 import { getPublicTeamResult } from "@/lib/results";
 
 function fmtDate(d: string | null) {

@@ -153,7 +153,7 @@ export default async function LeaderboardPage({
                   </a>
                   <Link href={`/admin/leaderboard/report?h=${selected}`}>
                     <Button variant="outline" size="sm">
-                      Report (PDF)
+                      Official report
                     </Button>
                   </Link>
                 </>

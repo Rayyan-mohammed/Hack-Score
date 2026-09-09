@@ -16,6 +16,10 @@ in order:
 6. `0006_sponsors.sql` — sponsors table + logo storage bucket
 7. `0007_registrations.sql` — problem statements, participant registrations
    (draft + one-hour auto-submit), registration switch and resource links
+8. `0008_registration_teams.sql` — team name/members on a registration, and
+   the link to the team it creates
+9. `0009_report_config.sql` — letterhead and signatory settings for the
+   official evaluation report
 
 (Or, with the Supabase CLI linked to your project: `supabase db push`.)
 
@@ -27,6 +31,10 @@ in order:
 > The registration form (`/register/...`), the admin **Registrations** page and
 > the "Registration form" option on the Teams page all depend on
 > `0007_registrations.sql`. Apply it before deploying them.
+
+> Team creation from a registration needs `0008_registration_teams.sql`, and
+> the official evaluation report (`/admin/leaderboard/report`, PDF + Excel)
+> needs `0009_report_config.sql`.
 
 ## Config for the new features
 
@@ -41,6 +49,11 @@ in order:
   deployed site. The WhatsApp group, PPT template and resources links shown on
   the confirmation page are set per hackathon under **Registrations → Form
   settings & resources**.
+- **Official evaluation report**: the letterhead, reference number and
+  signatory names live in `hackathons.report_config` and are edited at
+  *Leaderboard → Official report*. The PDF is built in the browser; the Excel
+  workbook is built on the server from the **saved** settings, so save before
+  downloading it.
 - **Results pages** (`/results/<token>`) are public and read via the service
   role, so `SUPABASE_SECRET_KEY` must be set in the deployment environment.
 
