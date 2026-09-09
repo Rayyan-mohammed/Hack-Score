@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
-import { Input, Label, Textarea } from "@/components/ui/input";
+import { Label, Textarea } from "@/components/ui/input";
+import { MaskedMarksInput } from "@/components/ui/masked-input";
 import { StatusBadge } from "@/components/ui/badge";
 import { Toast } from "@/components/ui/toast";
 import { saveEvaluation, type EvalState } from "./actions";
@@ -98,6 +99,8 @@ export function EvaluationForm({
     saveEvaluation,
     {},
   );
+  // Group toggle for the per-criterion View buttons.
+  const [revealAll, setRevealAll] = useState(false);
 
   return (
     <form action={formAction} className="space-y-5">
@@ -114,6 +117,22 @@ export function EvaluationForm({
       )}
 
       <div className="space-y-2">
+        {/* Marks are masked by default so a score can’t be read off the screen
+            by the team being judged; each row has its own View toggle. */}
+        <div className="flex items-center justify-between gap-3 px-1">
+          <p className="text-xs text-muted">
+            Marks are hidden as you type — use View to check a score.
+          </p>
+          <button
+            type="button"
+            onClick={() => setRevealAll((r) => !r)}
+            aria-pressed={revealAll}
+            className="cursor-pointer rounded-lg px-2 py-1 text-xs font-medium text-violet-bright transition-colors duration-150 hover:bg-surface-raised hover:text-cyan-bright focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-bright"
+          >
+            {revealAll ? "Hide all marks" : "View all marks"}
+          </button>
+        </div>
+
         {criteria.map((c) => (
           <div
             key={c.id}
@@ -127,16 +146,13 @@ export function EvaluationForm({
                 Max {c.max_marks} · weight {c.weight}
               </p>
             </div>
-            <Input
+            <MaskedMarksInput
               id={`score_${c.id}`}
               name={`score_${c.id}`}
-              type="number"
-              min={0}
-              max={c.max_marks}
-              step="0.5"
+              max={Number(c.max_marks)}
               defaultValue={initialScores[c.id] ?? ""}
               disabled={locked}
-              className="w-24 text-right font-display text-base font-semibold tabular-nums"
+              reveal={revealAll}
             />
           </div>
         ))}

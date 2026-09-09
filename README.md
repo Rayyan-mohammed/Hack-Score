@@ -10,7 +10,8 @@ Built with **Next.js (App Router)** and **Supabase** (Postgres, Auth, RLS).
 
 - Email/password auth with Admin and Judge roles (RBAC enforced by row level security)
 - Admin panel: hackathons, rounds, rubric builder, teams (manual + CSV import), judge accounts and round assignment
-- Judge dashboard: dynamic scorecards bound to each round's rubric, save draft / submit, scores lock after submit
+- Public registration form: participants enter name, SAP ID, mobile, college email and problem statement; answers save as a draft, auto-submit one hour later, and land on a confirmation page with the WhatsApp group, PPT template and resource links
+- Judge dashboard: dynamic scorecards bound to each round's rubric, marks masked behind a View toggle, save draft / submit, scores lock after submit
 - Leaderboard with per-round and overall rankings, plus a top-teams chart
 - Export results to CSV and a printable PDF report
 
@@ -18,7 +19,7 @@ Built with **Next.js (App Router)** and **Supabase** (Postgres, Auth, RLS).
 
 1. Create a project at [supabase.com](https://supabase.com).
 2. In the Supabase **SQL Editor**, run the files in `supabase/migrations/` in
-   order (`0001`, `0002`, `0003`). See `supabase/README.md` for details.
+   order (`0001` through `0007`). See `supabase/README.md` for details.
 3. Copy `.env.example` to `.env.local` and fill in your values:
 
    ```

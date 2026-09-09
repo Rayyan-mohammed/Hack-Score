@@ -9,8 +9,9 @@ import { EmptyCard, EmptyState } from "@/components/ui/states";
 import {
   HackathonSelect,
   AddTeamForm,
-  ImportTeamsForm,
+  ImportOptions,
 } from "./teams-panel";
+import { getSiteOrigin } from "@/lib/site";
 import { deleteTeam } from "./actions";
 
 type Team = {
@@ -31,7 +32,7 @@ export default async function TeamsPage({
 
   const { data: hackathons } = await supabase
     .from("hackathons")
-    .select("id, name, min_team_size, max_team_size")
+    .select("id, name, min_team_size, max_team_size, registration_open")
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
@@ -51,12 +52,13 @@ export default async function TeamsPage({
     : { data: [] as Team[] };
 
   const rows = (teams as Team[]) ?? [];
+  const origin = await getSiteOrigin();
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Teams"
-        description="Add teams manually or import them from a CSV file."
+        description="Add teams manually, import a CSV, or share the registration form."
         action={
           list.length > 0 ? (
             <HackathonSelect hackathons={list} selected={selected} />
@@ -148,10 +150,14 @@ export default async function TeamsPage({
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle>Import from CSV</CardTitle>
+                <CardTitle>Bulk add participants</CardTitle>
               </CardHeader>
               <CardContent>
-                <ImportTeamsForm hackathonId={selected!} />
+                <ImportOptions
+                  hackathonId={selected!}
+                  registrationUrl={`${origin}/register/${selected}`}
+                  registrationOpen={selectedHk?.registration_open ?? true}
+                />
               </CardContent>
             </Card>
           </div>

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { Toast } from "@/components/ui/toast";
 import { FileDropzone } from "@/components/ui/file-dropzone";
+import { RegistrationLink } from "@/app/admin/registrations/registration-link";
 import { parseMembers, validateTeamSize } from "@/lib/team-validation";
 import { createTeam, importTeams, type FormState } from "./actions";
 
@@ -247,5 +248,67 @@ export function ImportTeamsForm({ hackathonId }: { hackathonId: string }) {
       <Toast tone="success" message={state.message} />
       <SubmitButton label="Import CSV" />
     </form>
+  );
+}
+
+/**
+ * The "add participants in bulk" card: either upload a roster CSV, or hand out
+ * the public registration form and let participants fill it in themselves.
+ */
+export function ImportOptions({
+  hackathonId,
+  registrationUrl,
+  registrationOpen,
+}: {
+  hackathonId: string;
+  registrationUrl: string;
+  registrationOpen: boolean;
+}) {
+  const [tab, setTab] = useState<"csv" | "form">("csv");
+
+  const tabClass = (active: boolean) =>
+    `flex-1 cursor-pointer rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150 ${
+      active
+        ? "bg-gradient-accent-soft text-foreground"
+        : "text-muted hover:bg-surface-raised hover:text-foreground"
+    }`;
+
+  return (
+    <div className="space-y-4">
+      <div
+        role="tablist"
+        aria-label="How to add participants"
+        className="flex gap-1 rounded-xl border border-border bg-surface-raised/50 p-1"
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "csv"}
+          onClick={() => setTab("csv")}
+          className={tabClass(tab === "csv")}
+        >
+          CSV upload
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "form"}
+          onClick={() => setTab("form")}
+          className={tabClass(tab === "form")}
+        >
+          Registration form
+        </button>
+      </div>
+
+      {tab === "csv" ? (
+        <ImportTeamsForm hackathonId={hackathonId} />
+      ) : (
+        <RegistrationLink
+          url={registrationUrl}
+          open={registrationOpen}
+          manageHref={`/admin/registrations?h=${hackathonId}`}
+        />
+      )}
+    </div>
   );
 }

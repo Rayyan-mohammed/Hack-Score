@@ -12,6 +12,10 @@ in order:
 3. `0003_rls.sql` — row level security policies
 4. `0004_event_ops.sql` — round shortlisting, tie-breaks, soft delete,
    forced password change, results publishing + private team tokens
+5. `0005_team_leader.sql` — team leader name/email
+6. `0006_sponsors.sql` — sponsors table + logo storage bucket
+7. `0007_registrations.sql` — problem statements, participant registrations
+   (draft + one-hour auto-submit), registration switch and resource links
 
 (Or, with the Supabase CLI linked to your project: `supabase db push`.)
 
@@ -20,6 +24,10 @@ in order:
 > `0004_event_ops.sql`. Apply it **before** deploying that code, or those
 > pages will error on the missing columns.
 
+> The registration form (`/register/...`), the admin **Registrations** page and
+> the "Registration form" option on the Teams page all depend on
+> `0007_registrations.sql`. Apply it before deploying them.
+
 ## Config for the new features
 
 - **Password reset emails** (`/forgot-password`) require SMTP configured under
@@ -27,6 +35,12 @@ in order:
   `/change-password` to *Authentication → URL Configuration → Redirect URLs*.
 - Optionally set `NEXT_PUBLIC_SITE_URL` so reset links use the right origin
   (otherwise the request host is used).
+- **Registration form** (`/register/<hackathon id>`) is public and reads and
+  writes via the service role, so `SUPABASE_SECRET_KEY` must be set. Set
+  `NEXT_PUBLIC_SITE_URL` too, so the link the admin copies points at the
+  deployed site. The WhatsApp group, PPT template and resources links shown on
+  the confirmation page are set per hackathon under **Registrations → Form
+  settings & resources**.
 - **Results pages** (`/results/<token>`) are public and read via the service
   role, so `SUPABASE_SECRET_KEY` must be set in the deployment environment.
 
