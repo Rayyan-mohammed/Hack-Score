@@ -260,7 +260,7 @@ export async function createTeamFromRegistration(
   const { data: registration } = await supabase
     .from("registrations")
     .select(
-      "id, team_id, full_name, college_email, team_name, members, problem_statement",
+      "id, team_id, full_name, college_email, team_name, members, problem_statement, problem_statement_code",
     )
     .eq("token", token)
     .maybeSingle();
@@ -320,6 +320,7 @@ export async function createTeamFromRegistration(
         team_leader_name: registration.full_name,
         team_leader_email: registration.college_email,
         problem_statement: registration.problem_statement,
+        problem_statement_code: registration.problem_statement_code,
       })
       .select("id, team_code")
       .single();

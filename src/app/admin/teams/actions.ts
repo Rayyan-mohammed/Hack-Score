@@ -102,6 +102,8 @@ export async function createTeam(
       college: String(formData.get("college") ?? "").trim() || null,
       track: String(formData.get("track") ?? "").trim() || null,
       mentor: String(formData.get("mentor") ?? "").trim() || null,
+      problem_statement_code:
+        String(formData.get("problem_statement_code") ?? "").trim() || null,
       problem_statement:
         String(formData.get("problem_statement") ?? "").trim() || null,
     })
@@ -165,6 +167,8 @@ export async function updateTeam(
       college: String(formData.get("college") ?? "").trim() || null,
       track: String(formData.get("track") ?? "").trim() || null,
       mentor: String(formData.get("mentor") ?? "").trim() || null,
+      problem_statement_code:
+        String(formData.get("problem_statement_code") ?? "").trim() || null,
       problem_statement:
         String(formData.get("problem_statement") ?? "").trim() || null,
     })
@@ -223,7 +227,8 @@ export async function deleteTeam(formData: FormData) {
 
 // Bulk import teams from an uploaded CSV file.
 // Expected headers: team_code, team_leader_name, team_leader_email, name,
-// college, track, mentor, problem_statement, members (members separated by ';').
+// college, track, mentor, problem_statement_code, problem_statement, members
+// (members separated by ';').
 // Each row is validated (leader name + email, team size) and skipped with a
 // reason if invalid, so a bad row never aborts the whole import.
 export async function importTeams(
@@ -293,6 +298,8 @@ export async function importTeams(
         college: r.college || null,
         track: r.track || null,
         mentor: r.mentor || null,
+        problem_statement_code:
+          r.problem_statement_code || r["problem statement id"] || r.ps_code || null,
         problem_statement: r.problem_statement || r["problem statement"] || null,
       })
       .select("id")

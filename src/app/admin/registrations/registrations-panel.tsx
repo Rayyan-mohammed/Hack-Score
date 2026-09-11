@@ -6,6 +6,7 @@ import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { Toast } from "@/components/ui/toast";
+import { FileDropzone } from "@/components/ui/file-dropzone";
 import { formatCountdown } from "@/lib/registration-form";
 import {
   addProblemStatement,
@@ -101,8 +102,28 @@ export function RegistrationSettingsForm({
           defaultValue={values.whatsapp_group_url ?? ""}
         />
       </div>
-      <div>
-        <Label htmlFor="ppt_template_url">PPT template link</Label>
+      <div className="rounded-xl border border-border bg-surface-raised/50 p-4">
+        <Label htmlFor="ppt_template_url">PPT template</Label>
+        <p className="mb-3 text-xs text-subtle">
+          Upload the deck, or paste a link to it. Either way it appears on every
+          participant&apos;s confirmation page immediately, including the ones
+          already submitted.
+        </p>
+
+        <FileDropzone
+          name="ppt_template_file"
+          accept=".ppt,.pptx,.pdf"
+          extensions={[".ppt", ".pptx", ".pdf"]}
+          maxSizeMB={4}
+          title="Drag & drop the PPT template here"
+          hint="PPT, PPTX or PDF, up to 4MB"
+          readyLabel="Ready to upload"
+        />
+
+        <p className="mt-3 mb-1.5 text-xs text-subtle">
+          Or paste a link (Drive, OneDrive…) — needed for decks over 4MB.
+          Uploading a file replaces whatever is in this box.
+        </p>
         <Input
           id="ppt_template_url"
           name="ppt_template_url"
@@ -110,10 +131,20 @@ export function RegistrationSettingsForm({
           placeholder="https://…/template.pptx"
           defaultValue={values.ppt_template_url ?? ""}
         />
-        <p className="mt-1 text-xs text-subtle">
-          Paste the template link once it exists — it appears on every
-          participant&apos;s confirmation page immediately, including past ones.
-        </p>
+        {values.ppt_template_url && (
+          <p className="mt-2 text-xs text-muted">
+            Participants currently get{" "}
+            <a
+              href={values.ppt_template_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-violet-bright underline underline-offset-2 hover:text-cyan-bright"
+            >
+              this template
+            </a>
+            . Clear the box and save to take it down.
+          </p>
+        )}
       </div>
       <div>
         <Label htmlFor="resources_url">Important resources link</Label>

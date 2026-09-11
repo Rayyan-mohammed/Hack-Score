@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Toast } from "@/components/ui/toast";
 import { missingFields } from "@/lib/registration-form";
+import { parseMembers } from "@/lib/team-validation";
 import {
   getRegistrationByToken,
   getRegistrationHackathon,
@@ -95,6 +96,8 @@ export default async function RegistrationSuccessPage({
   const hackathon = await getRegistrationHackathon(registration.hackathon_id);
   const team = await getRegistrationTeam(registration.team_id);
   const values = toValues(registration);
+  // The roster as it was filled in: the registrant is always person 1.
+  const roster = [values.full_name, ...parseMembers(values.members)];
   const gaps = missingFields(
     values,
     hackathon ? teamSizeBounds(hackathon) : undefined,
@@ -231,17 +234,13 @@ export default async function RegistrationSuccessPage({
           </CardHeader>
           <CardContent className="pt-3">
             <Row label="Team name" value={values.team_name} />
-            <Row
-              label="Team members"
-              value={
-                values.members
-                  ? [values.full_name, values.members]
-                      .filter(Boolean)
-                      .join("; ")
-                  : values.full_name
-              }
-            />
-            <Row label="Name (team leader)" value={values.full_name} />
+            {roster.map((member, i) => (
+              <Row
+                key={i}
+                label={i === 0 ? "Team Leader" : `Member ${i + 1}`}
+                value={member}
+              />
+            ))}
             <Row label="SAP ID" value={values.sap_id} />
             <Row label="Mobile number" value={values.mobile} />
             <Row label="College email ID" value={values.college_email} />

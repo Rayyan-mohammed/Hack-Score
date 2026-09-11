@@ -20,6 +20,9 @@ type Team = {
   name: string;
   college: string | null;
   track: string | null;
+  team_leader_name: string | null;
+  problem_statement_code: string | null;
+  problem_statement: string | null;
 };
 
 export default async function TeamsPage({
@@ -45,7 +48,9 @@ export default async function TeamsPage({
   const { data: teams } = selected
     ? await supabase
         .from("teams")
-        .select("id, team_code, name, college, track")
+        .select(
+          "id, team_code, name, college, track, team_leader_name, problem_statement_code, problem_statement",
+        )
         .eq("hackathon_id", selected)
         .is("deleted_at", null)
         .order("team_code", { ascending: true })
@@ -53,6 +58,13 @@ export default async function TeamsPage({
 
   const rows = (teams as Team[]) ?? [];
   const origin = await getSiteOrigin();
+
+  // Teams that came from the registration form have no college or track — the
+  // public form never asks for them. Rather than show two columns of dashes,
+  // drop each one unless at least one team actually has it; the leader and the
+  // problem statement are always shown instead.
+  const showCollege = rows.some((t) => t.college);
+  const showTrack = rows.some((t) => t.track);
 
   return (
     <div className="space-y-6">
@@ -91,8 +103,10 @@ export default async function TeamsPage({
                     <TR>
                       <TH>Code</TH>
                       <TH>Name</TH>
-                      <TH>College</TH>
-                      <TH>Track</TH>
+                      <TH>Team leader</TH>
+                      {showCollege && <TH>College</TH>}
+                      {showTrack && <TH>Track</TH>}
+                      <TH>Problem statement</TH>
                       <TH></TH>
                     </TR>
                   </THead>
@@ -103,9 +117,24 @@ export default async function TeamsPage({
                           {t.team_code}
                         </TD>
                         <TD className="font-medium">{t.name}</TD>
-                        <TD className="text-muted">{t.college ?? "—"}</TD>
-                        <TD>
-                          <TrackBadge track={t.track} />
+                        <TD className="text-muted">
+                          {t.team_leader_name || "—"}
+                        </TD>
+                        {showCollege && (
+                          <TD className="text-muted">{t.college ?? "—"}</TD>
+                        )}
+                        {showTrack && (
+                          <TD>
+                            <TrackBadge track={t.track} />
+                          </TD>
+                        )}
+                        <TD className="max-w-[20rem] text-muted">
+                          <span className="block font-mono text-xs text-violet-bright">
+                            {t.problem_statement_code || "—"}
+                          </span>
+                          <span className="block truncate text-xs">
+                            {t.problem_statement || "—"}
+                          </span>
                         </TD>
                         <TD className="text-right">
                           <div className="flex items-center justify-end gap-1">

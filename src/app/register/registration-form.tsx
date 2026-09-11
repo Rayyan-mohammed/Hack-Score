@@ -12,7 +12,12 @@ import {
   validateRegistration,
   type RegistrationValues,
 } from "@/lib/registration-form";
-import { parseMembers, validateTeamSize } from "@/lib/team-validation";
+import {
+  membersToSlots,
+  parseMembers,
+  slotsToMembers,
+  validateTeamSize,
+} from "@/lib/team-validation";
 import type { ProblemStatement } from "@/lib/registrations";
 import { autoSubmitDraft, saveDraft, submitRegistration } from "./actions";
 
@@ -117,6 +122,15 @@ export function RegistrationForm({
     if (!code) return "";
     return problemStatements.some((p) => p.ps_code === code) ? code : OTHER;
   });
+
+  // The roster is typed one name per row ("Member 2" … "Member N"), but is
+  // still stored as the semicolon string every other path expects. Slot
+  // positions live here so clearing a middle row doesn't shuffle the ones
+  // below it up.
+  const memberSlots = Math.max(0, maxSize - 1);
+  const [slots, setSlots] = useState<string[]>(() =>
+    membersToSlots(initialValues?.members ?? "", memberSlots),
+  );
 
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -238,6 +252,14 @@ export function RegistrationForm({
     setValues((v) => ({ ...v, [key]: value }));
     setDirty(true);
     setNotice(null);
+  };
+
+  /** One roster row changed — rewrite the stored members string from all rows. */
+  const setMemberSlot = (index: number, value: string) => {
+    const next = slots.slice();
+    next[index] = value;
+    setSlots(next);
+    setField("members", slotsToMembers(next));
   };
 
   const onPickStatement = (code: string) => {
@@ -412,21 +434,69 @@ export function RegistrationForm({
                 />
               </div>
               <div>
-                <Label htmlFor="members">Team members</Label>
-                <Textarea
-                  id="members"
-                  name="members"
-                  value={values.members}
-                  disabled={busy}
-                  onChange={(e) => setField("members", e.target.value)}
-                  placeholder="Sneha Kulkarni; Rohit Bansal; Pooja Singh"
-                />
-                <p className="mt-1 text-xs text-subtle">
-                  Separate members with a semicolon (;). You are counted as the
-                  team leader automatically.
+                <Label htmlFor={memberSlots > 0 ? "member_2" : undefined}>
+                  Team members
+                </Label>
+                <p className="mb-2.5 text-xs text-subtle">
+                  One name per row. The first row is you — the team leader —
+                  filled in from your name above.
                 </p>
+
+                <div className="space-y-2">
+                  <div className="grid gap-1.5 sm:grid-cols-[9.5rem_1fr] sm:items-center sm:gap-3">
+                    <span className="text-xs font-medium text-violet-bright">
+                      Team Leader
+                    </span>
+                    <Input
+                      readOnly
+                      aria-label="Team leader"
+                      value={values.full_name}
+                      placeholder="Enter your name in “Name” above"
+                      className="cursor-default"
+                    />
+                  </div>
+
+                  {memberSlots === 0 ? (
+                    <p className="text-xs text-muted">
+                      This event is for solo participants — no extra members
+                      needed.
+                    </p>
+                  ) : (
+                    slots.map((value, i) => {
+                      // Row i is person number i + 2 (the leader is person 1).
+                      const person = i + 2;
+                      const required = person <= minSize;
+                      return (
+                        <div
+                          key={person}
+                          className="grid gap-1.5 sm:grid-cols-[9.5rem_1fr] sm:items-center sm:gap-3"
+                        >
+                          <Label
+                            htmlFor={`member_${person}`}
+                            className="mb-0 text-xs font-medium text-muted"
+                          >
+                            Member {person}
+                            {!required && (
+                              <span className="text-subtle"> (optional)</span>
+                            )}
+                          </Label>
+                          <Input
+                            id={`member_${person}`}
+                            value={value}
+                            disabled={busy}
+                            autoComplete="off"
+                            placeholder="Full name"
+                            required={required}
+                            onChange={(e) => setMemberSlot(i, e.target.value)}
+                          />
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
                 <p
-                  className={`mt-1.5 text-xs font-medium ${
+                  className={`mt-2.5 text-xs font-medium ${
                     sizeOk ? "text-success" : "text-danger"
                   }`}
                 >

@@ -57,6 +57,7 @@ export type TeamInitial = {
   college?: string | null;
   track?: string | null;
   mentor?: string | null;
+  problem_statement_code?: string | null;
   problem_statement?: string | null;
   members?: string; // "A; B; C"
 };
@@ -183,6 +184,15 @@ export function TeamForm({
         </div>
       </div>
       <div>
+        <Label htmlFor="problem_statement_code">Problem statement ID</Label>
+        <Input
+          id="problem_statement_code"
+          name="problem_statement_code"
+          placeholder="PS-001"
+          defaultValue={initial.problem_statement_code ?? ""}
+        />
+      </div>
+      <div>
         <Label htmlFor="problem_statement">Problem statement</Label>
         <Textarea
           id="problem_statement"
@@ -231,7 +241,8 @@ export function ImportTeamsForm({ hackathonId }: { hackathonId: string }) {
       <input type="hidden" name="hackathon_id" value={hackathonId} />
       <p className="text-sm text-muted">
         CSV headers: team_code, team_leader_name, team_leader_email, name,
-        college, track, mentor, problem_statement, members (names separated by{" "}
+        college, track, mentor, problem_statement_code, problem_statement,
+        members (names separated by{" "}
         <code>;</code>). Leader name and a valid email are required, and each
         team&apos;s size (leader + members) must fit the hackathon&apos;s
         min/max.

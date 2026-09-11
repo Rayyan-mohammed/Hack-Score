@@ -17,7 +17,7 @@ export default async function EditTeamPage({
   const { data: team } = await supabase
     .from("teams")
     .select(
-      "id, hackathon_id, team_code, name, team_leader_name, team_leader_email, college, track, mentor, problem_statement",
+      "id, hackathon_id, team_code, name, team_leader_name, team_leader_email, college, track, mentor, problem_statement_code, problem_statement",
     )
     .eq("id", teamId)
     .is("deleted_at", null)
@@ -68,6 +68,7 @@ export default async function EditTeamPage({
               college: team.college,
               track: team.track,
               mentor: team.mentor,
+              problem_statement_code: team.problem_statement_code,
               problem_statement: team.problem_statement,
               members: (members ?? []).map((m) => m.name).join("; "),
             }}

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import {
@@ -25,9 +26,57 @@ function normaliseUrl(raw: string): string | null | undefined {
   }
 }
 
+const RESOURCES_BUCKET = "event-resources";
+/** Server Actions are capped by `serverActions.bodySizeLimit` in next.config —
+ *  keep this comfortably under it so a too-large deck fails with our message
+ *  rather than a framework error. Bigger decks go up as a link instead. */
+const PPT_MAX_BYTES = 4 * 1024 * 1024; // 4 MB
+const PPT_EXTENSIONS = [".ppt", ".pptx", ".pdf"];
+
+/**
+ * Put the uploaded PPT template in the public event-resources bucket and hand
+ * back its URL. Uses the service role (server-only, already behind
+ * requireAdmin), the same arrangement as sponsor logos, so the bucket needs no
+ * client-facing write policy. The `?download=` parameter makes Supabase serve
+ * it as an attachment under its original name instead of opening it inline.
+ */
+async function uploadPptTemplate(
+  hackathonId: string,
+  file: File,
+): Promise<{ url?: string; error?: string }> {
+  const ext = PPT_EXTENSIONS.find((e) => file.name.toLowerCase().endsWith(e));
+  if (!ext)
+    return { error: "The PPT template must be a .ppt, .pptx or .pdf file." };
+  if (file.size > PPT_MAX_BYTES)
+    return {
+      error:
+        "The PPT template must be under 4 MB. Host a larger deck (Drive, OneDrive…) and paste its link instead.",
+    };
+  if (!process.env.SUPABASE_SECRET_KEY)
+    return {
+      error: "Server is missing SUPABASE_SECRET_KEY (needed to store uploads).",
+    };
+
+  try {
+    const admin = createAdminClient();
+    const path = `${hackathonId}/${crypto.randomUUID()}${ext}`;
+    const { error } = await admin.storage
+      .from(RESOURCES_BUCKET)
+      .upload(path, file, { contentType: file.type, upsert: false });
+    if (error) return { error: `Upload failed: ${error.message}` };
+    const {
+      data: { publicUrl },
+    } = admin.storage.from(RESOURCES_BUCKET).getPublicUrl(path);
+    return { url: `${publicUrl}?download=${encodeURIComponent(file.name)}` };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Upload failed." };
+  }
+}
+
 /**
  * Registration switch + the three links the confirmation page offers
- * (WhatsApp group, PPT template, resource pack).
+ * (WhatsApp group, PPT template, resource pack). The PPT template can also be
+ * uploaded outright, in which case the uploaded file wins over the link box.
  */
 export async function updateRegistrationSettings(
   _prev: FormState,
@@ -51,6 +100,15 @@ export async function updateRegistrationSettings(
   for (const key of Object.keys(fields) as (keyof typeof fields)[]) {
     if (fields[key] === undefined)
       return { error: `${labels[key]} must be a full http(s) URL.` };
+  }
+
+  // An uploaded deck replaces whatever is in the link box — organisers who
+  // upload expect that file to be the one participants get.
+  const upload = formData.get("ppt_template_file");
+  if (upload instanceof File && upload.size > 0) {
+    const up = await uploadPptTemplate(hackathon_id, upload);
+    if (up.error || !up.url) return { error: up.error ?? "Upload failed." };
+    fields.ppt_template_url = up.url;
   }
 
   const registration_open = formData.get("registration_open") === "on";

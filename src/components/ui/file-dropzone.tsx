@@ -16,18 +16,29 @@ function humanSize(bytes: number) {
  * submission is unchanged; drops are written into it via a DataTransfer. The
  * zone validates type/size client-side and shows a preview, but the server
  * remains the source of truth.
+ *
+ * Defaults describe the roster CSV import; pass `extensions`/`title`/`hint`
+ * for any other kind of upload (the PPT template, say).
  */
 export function FileDropzone({
   name,
   accept = ".csv",
+  extensions = [".csv"],
   maxSizeMB = 10,
   hint = "CSV file, up to 10MB",
+  title = "Drag & drop your CSV here",
+  readyLabel = "Ready to import",
   disabled = false,
 }: {
   name: string;
   accept?: string;
+  /** Allowed file extensions, lowercase and dot-prefixed. */
+  extensions?: string[];
   maxSizeMB?: number;
   hint?: string;
+  title?: string;
+  /** Caption under the chosen file, e.g. "Ready to upload". */
+  readyLabel?: string;
   disabled?: boolean;
 }) {
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -37,18 +48,18 @@ export function FileDropzone({
 
   const maxBytes = maxSizeMB * 1024 * 1024;
 
+  const allowed = extensions.join(",");
   const validate = React.useCallback(
     (f: File): string | null => {
-      const isCsv =
-        /\.csv$/i.test(f.name) ||
-        f.type === "text/csv" ||
-        f.type === "application/vnd.ms-excel";
-      if (!isCsv) return "Only .csv files are supported.";
+      const list = allowed.split(",").filter(Boolean);
+      const named = f.name.toLowerCase();
+      if (list.length > 0 && !list.some((ext) => named.endsWith(ext)))
+        return `Only ${list.join(", ")} files are supported.`;
       if (f.size > maxBytes) return `File is too large (max ${maxSizeMB}MB).`;
       if (f.size === 0) return "That file looks empty.";
       return null;
     },
-    [maxBytes, maxSizeMB],
+    [allowed, maxBytes, maxSizeMB],
   );
 
   const accept_file = React.useCallback(
@@ -97,7 +108,7 @@ export function FileDropzone({
           role="button"
           tabIndex={disabled ? -1 : 0}
           aria-disabled={disabled}
-          aria-label="Upload a CSV file"
+          aria-label={title}
           onClick={open}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
@@ -146,7 +157,7 @@ export function FileDropzone({
           </span>
           <div>
             <p className="text-sm font-medium text-foreground">
-              {dragging ? "Drop your file to upload" : "Drag & drop your CSV here"}
+              {dragging ? "Drop your file to upload" : title}
             </p>
             <p className="mt-0.5 text-xs text-muted">
               or{" "}
@@ -181,7 +192,7 @@ export function FileDropzone({
               {file.name}
             </p>
             <p className="text-xs text-muted">
-              {humanSize(file.size)} · Ready to import
+              {humanSize(file.size)} · {readyLabel}
             </p>
           </div>
           <div className="flex items-center gap-2">

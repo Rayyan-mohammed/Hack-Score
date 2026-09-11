@@ -20,6 +20,8 @@ in order:
    the link to the team it creates
 9. `0009_report_config.sql` — letterhead and signatory settings for the
    official evaluation report
+10. `0010_event_resources.sql` — problem statement ID on teams, and the
+    storage bucket the PPT template is uploaded to
 
 (Or, with the Supabase CLI linked to your project: `supabase db push`.)
 
@@ -36,6 +38,12 @@ in order:
 > the official evaluation report (`/admin/leaderboard/report`, PDF + Excel)
 > needs `0009_report_config.sql`.
 
+> **Important:** the admin **Teams** table and the Add/Edit-team form now read
+> and write `teams.problem_statement_code`, and the PPT template upload needs
+> the `event-resources` bucket — both come from `0010_event_resources.sql`.
+> Apply it **before** deploying this code, or the Teams pages will error on the
+> missing column.
+
 ## Config for the new features
 
 - **Password reset emails** (`/forgot-password`) require SMTP configured under
@@ -48,7 +56,11 @@ in order:
   `NEXT_PUBLIC_SITE_URL` too, so the link the admin copies points at the
   deployed site. The WhatsApp group, PPT template and resources links shown on
   the confirmation page are set per hackathon under **Registrations → Form
-  settings & resources**.
+  settings & resources**. The PPT template can be uploaded there (PPT/PPTX/PDF,
+  up to 4 MB, stored in the public `event-resources` bucket) or given as a
+  link; an upload replaces the link. Uploads travel through a Server Action, so
+  `serverActions.bodySizeLimit` in `next.config.ts` must stay above the 4 MB
+  cap.
 - **Official evaluation report**: the letterhead, reference number and
   signatory names live in `hackathons.report_config` and are edited at
   *Leaderboard → Official report*. The PDF is built in the browser; the Excel
