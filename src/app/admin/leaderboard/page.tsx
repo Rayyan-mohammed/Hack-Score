@@ -58,7 +58,7 @@ export default async function LeaderboardPage({
   const maxCriterion: Record<string, number> = {};
 
   if (selected) {
-    const [{ data: t }, { data: r }] = await Promise.all([
+    const [{ data: t }, { data: r }, { data: sp }] = await Promise.all([
       supabase
         .from("teams")
         .select(
@@ -72,12 +72,12 @@ export default async function LeaderboardPage({
         .eq("hackathon_id", selected)
         .is("deleted_at", null)
         .order("sort_order", { ascending: true }),
+      supabase
+        .from("sponsors")
+        .select("id, name, logo_url, label, sort_order")
+        .eq("hackathon_id", selected)
+        .order("sort_order", { ascending: true }),
     ]);
-    const { data: sp } = await supabase
-      .from("sponsors")
-      .select("id, name, logo_url, label, sort_order")
-      .eq("hackathon_id", selected)
-      .order("sort_order", { ascending: true });
     sponsors = (sp as Sponsor[]) ?? [];
 
     teams = (t as TeamRow[]) ?? [];

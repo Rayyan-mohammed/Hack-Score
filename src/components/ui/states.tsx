@@ -70,6 +70,58 @@ export function Skeleton({ className }: { className?: string }) {
   );
 }
 
+/**
+ * Route-level loading screen, shown the instant a nav link is clicked while
+ * the page itself is fetched. Shaped like a real page — title, a stat row,
+ * a card of rows — so the swap to real content doesn't jump. Fades in after a
+ * short delay: a page that arrives quickly never flashes a skeleton at all.
+ */
+export function PageSkeleton({
+  label = "Loading page…",
+  stats = true,
+  rows = 5,
+}: {
+  label?: string;
+  stats?: boolean;
+  rows?: number;
+}) {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="animate-skeleton-in space-y-6"
+    >
+      <span className="sr-only">{label}</span>
+
+      <div className="space-y-2.5">
+        <Skeleton className="h-8 w-48 sm:h-9" />
+        <Skeleton className="h-4 w-full max-w-md" />
+      </div>
+
+      {stats && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-24" />
+          ))}
+        </div>
+      )}
+
+      <div className="rounded-2xl border border-border bg-surface p-5 shadow-card">
+        <Skeleton className="h-5 w-32" />
+        <div className="mt-5 space-y-3">
+          {Array.from({ length: rows }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4">
+              <Skeleton className="h-4 w-12 shrink-0" />
+              <Skeleton className="h-4 flex-1" />
+              <Skeleton className="hidden h-4 w-24 shrink-0 sm:block" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** Page-level loading placeholder: a stat row plus a table-ish block. */
 export function LoadingState({ label = "Loading…" }: { label?: string }) {
   return (

@@ -5,6 +5,14 @@ import { NextResponse, type NextRequest } from "next/server";
 // auth cookies in sync between the request and the response. Called from
 // the root `proxy.ts` (the Next.js 16 replacement for middleware).
 export async function updateSession(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+
+  // The public participant pages (registration form, results, certificates)
+  // never use a login — they read through the service role by token — so
+  // there is no session to check or refresh. Let them straight through.
+  if (path.startsWith("/register") || path.startsWith("/results"))
+    return NextResponse.next({ request });
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -28,12 +36,13 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  // Touch the user so the session gets refreshed if it's expiring.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Verify the session and refresh it if it's about to expire. getClaims()
+  // checks the JWT signature locally against the project's cached public key,
+  // so unlike getUser() it doesn't call the Auth server on every request —
+  // and this runs before every page load and every link prefetch.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims?.sub ? data.claims : null;
 
-  const path = request.nextUrl.pathname;
   const isProtected = path.startsWith("/admin") || path.startsWith("/judge");
   const isAuthPage = path === "/login" || path === "/signup";
 

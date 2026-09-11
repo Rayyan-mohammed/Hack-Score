@@ -18,8 +18,15 @@ export default async function EvaluatePage({
   const { user } = await requireJudge();
   const supabase = await createClient();
 
-  const [{ data: round }, { data: team }, { data: criteria }] =
-    await Promise.all([
+  // Everything this page needs, fetched at once rather than one after another
+  // — the judge's existing scores come embedded in their evaluation row.
+  const [
+    { data: round },
+    { data: team },
+    { data: criteria },
+    participantIds,
+    { data: evaluation },
+  ] = await Promise.all([
       supabase
         .from("rounds")
         .select("id, name, hackathons(name)")
@@ -35,31 +42,25 @@ export default async function EvaluatePage({
         .select("id, name, max_marks, weight")
         .eq("round_id", roundId)
         .order("sort_order", { ascending: true }),
+      getRoundParticipantIds(supabase, roundId),
+      supabase
+        .from("evaluations")
+        .select("id, status, comments, evaluation_scores(criterion_id, score)")
+        .eq("round_id", roundId)
+        .eq("team_id", teamId)
+        .eq("judge_id", user!.id)
+        .maybeSingle(),
     ]);
 
   if (!round || !team) notFound();
 
   // Eliminated teams (not on the round's shortlist) cannot be scored, even via
   // a direct URL. No shortlist ⇒ everyone participates.
-  const participantIds = await getRoundParticipantIds(supabase, roundId);
   if (participantIds && !participantIds.has(teamId)) notFound();
 
-  const { data: evaluation } = await supabase
-    .from("evaluations")
-    .select("id, status, comments")
-    .eq("round_id", roundId)
-    .eq("team_id", teamId)
-    .eq("judge_id", user!.id)
-    .maybeSingle();
-
   const initialScores: Record<string, number> = {};
-  if (evaluation) {
-    const { data: scores } = await supabase
-      .from("evaluation_scores")
-      .select("criterion_id, score")
-      .eq("evaluation_id", evaluation.id);
-    for (const s of scores ?? []) initialScores[s.criterion_id] = s.score;
-  }
+  for (const s of evaluation?.evaluation_scores ?? [])
+    initialScores[s.criterion_id] = s.score;
 
   const hackName = (round as unknown as { hackathons: { name: string } | null })
     .hackathons?.name;

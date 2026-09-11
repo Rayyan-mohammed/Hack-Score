@@ -19,10 +19,8 @@ export async function logAudit(entry: {
 
     let actorId = entry.actorId ?? null;
     if (actorId === undefined || actorId === null) {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      actorId = user?.id ?? null;
+      const { data } = await supabase.auth.getClaims();
+      actorId = data?.claims?.sub ?? null;
     }
 
     await supabase.from("audit_logs").insert({

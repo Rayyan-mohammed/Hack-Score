@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { createPortal } from "react-dom";
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Brand } from "@/components/brand";
@@ -12,6 +12,24 @@ function useIsActive() {
   const pathname = usePathname();
   return (href: string) =>
     href === pathname || (href !== "/admin" && pathname.startsWith(`${href}/`));
+}
+
+/**
+ * A dot that pulses on the link that was just clicked, until its page arrives.
+ * Always rendered at a fixed size and toggled by opacity, so it never shifts
+ * the label. Must sit inside the <Link> — useLinkStatus reads its parent.
+ */
+function PendingDot() {
+  const { pending } = useLinkStatus();
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "h-1.5 w-1.5 shrink-0 rounded-full bg-violet-bright transition-opacity duration-150",
+        pending ? "animate-nav-pending opacity-100" : "opacity-0",
+      )}
+    />
+  );
 }
 
 /** Sidebar nav links with an animated gradient underline + active state. */
@@ -36,13 +54,14 @@ export function NavLinks({
             aria-current={active ? "page" : undefined}
             data-active={active}
             className={cn(
-              "nav-underline block rounded-xl px-3 py-2 text-sm font-medium transition-colors duration-200",
+              "nav-underline flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors duration-200",
               active
                 ? "bg-gradient-accent-soft text-foreground"
                 : "text-muted hover:bg-surface-raised hover:text-foreground",
             )}
           >
             {item.label}
+            <PendingDot />
           </Link>
         );
       })}
