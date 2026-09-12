@@ -89,57 +89,6 @@ export default async function JudgesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Create a judge account</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <CreateJudgeForm />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Judges ({judgeList.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {judgeList.length === 0 ? (
-            <EmptyState
-              title="No judges yet"
-              description="Create a judge account above to get started."
-            />
-          ) : (
-            <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border">
-              {judgeList.map((j) => (
-                <li key={j.id}>
-                  <Link
-                    href={`/admin/judges/${j.id}`}
-                    className="group flex items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-surface-raised/60 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-cyan-bright"
-                  >
-                    <span
-                      aria-hidden="true"
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-accent-soft font-display text-xs font-semibold text-violet-bright"
-                    >
-                      {(j.full_name || j.email || "?").charAt(0).toUpperCase()}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium">{j.full_name || "—"}</p>
-                      <p className="truncate text-xs text-muted">{j.email}</p>
-                    </div>
-                    <span
-                      aria-hidden="true"
-                      className="shrink-0 text-muted transition-transform duration-150 group-hover:translate-x-0.5"
-                    >
-                      →
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
           <CardTitle>Assign a judge to a round</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -212,6 +161,57 @@ export default async function JudgesPage() {
               </tbody>
             </Table>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Judges ({judgeList.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {judgeList.length === 0 ? (
+            <EmptyState
+              title="No judges yet"
+              description="Create a judge account above to get started."
+            />
+          ) : (
+            <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border">
+              {judgeList.map((j) => (
+                <li key={j.id}>
+                  <Link
+                    href={`/admin/judges/${j.id}`}
+                    className="group flex items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-surface-raised/60 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-cyan-bright"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-accent-soft font-display text-xs font-semibold text-violet-bright"
+                    >
+                      {(j.full_name || j.email || "?").charAt(0).toUpperCase()}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium">{j.full_name || "—"}</p>
+                      <p className="truncate text-xs text-muted">{j.email}</p>
+                    </div>
+                    <span
+                      aria-hidden="true"
+                      className="shrink-0 text-muted transition-transform duration-150 group-hover:translate-x-0.5"
+                    >
+                      →
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Create a judge account</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <CreateJudgeForm />
         </CardContent>
       </Card>
     </div>
