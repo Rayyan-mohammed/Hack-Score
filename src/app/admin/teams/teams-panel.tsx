@@ -156,12 +156,13 @@ export function TeamForm({
           />
         </div>
         <div>
-          <Label htmlFor="college">College</Label>
+          <Label htmlFor="college">
+            College <span className="text-subtle">(optional)</span>
+          </Label>
           <Input
             id="college"
             name="college"
             defaultValue={initial.college ?? ""}
-            required
           />
         </div>
         <div>
@@ -174,12 +175,13 @@ export function TeamForm({
           />
         </div>
         <div>
-          <Label htmlFor="mentor">Mentor</Label>
+          <Label htmlFor="mentor">
+            Mentor <span className="text-subtle">(optional)</span>
+          </Label>
           <Input
             id="mentor"
             name="mentor"
             defaultValue={initial.mentor ?? ""}
-            required
           />
         </div>
       </div>
