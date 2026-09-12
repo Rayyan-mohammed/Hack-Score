@@ -1,12 +1,16 @@
 // Server-side data access for the admin judge-progress view.
 //
-// A judge is assigned to rounds (round_judges); the teams they must evaluate
-// are the teams in each assigned round's hackathon. A (round, team) task is
-// "evaluated" once the judge has a *submitted* evaluation for it — a draft
-// does not count as visited.
+// A judge is assigned to rounds (round_judges), and within a round may be
+// given a specific list of teams (judge_teams) — without one they score every
+// team in the round. A (round, team) task is "evaluated" once the judge has a
+// *submitted* evaluation for it — a draft does not count as visited.
 
 import { createClient } from "@/lib/supabase/server";
-import { getParticipantsMap, participates } from "@/lib/rounds";
+import {
+  getJudgeTeamMap,
+  getParticipantsMap,
+  participates,
+} from "@/lib/rounds";
 
 export type ProgressTeam = {
   teamId: string;
@@ -73,7 +77,7 @@ export async function getJudgeProgress(judgeId: string): Promise<JudgeProgress> 
     ...new Set(assignments.map((a) => a.rounds!.hackathon_id)),
   ];
 
-  const [{ data: teamData }, { data: evalData }, participants] =
+  const [{ data: teamData }, { data: evalData }, participants, myTeams] =
     await Promise.all([
       supabase
         .from("teams")
@@ -87,6 +91,7 @@ export async function getJudgeProgress(judgeId: string): Promise<JudgeProgress> 
         .eq("judge_id", judgeId)
         .in("round_id", roundIds),
       getParticipantsMap(supabase, roundIds),
+      getJudgeTeamMap(supabase, judgeId, roundIds),
     ]);
 
   const teams = (teamData as {
@@ -116,7 +121,8 @@ export async function getJudgeProgress(judgeId: string): Promise<JudgeProgress> 
     const roundTeams = teams.filter(
       (t) =>
         t.hackathon_id === round.hackathon_id &&
-        participates(participants, round.id, t.id),
+        participates(participants, round.id, t.id) &&
+        participates(myTeams, round.id, t.id),
     );
 
     const evaluated: ProgressTeam[] = [];

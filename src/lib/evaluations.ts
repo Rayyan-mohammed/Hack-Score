@@ -93,6 +93,7 @@ export async function getTeamEvaluationBreakdown(
     { data: criteriaData },
     { data: assignmentData },
     { data: evalData },
+    { data: judgeTeamData },
   ] = await Promise.all([
     supabase
       .from("rubric_criteria")
@@ -108,7 +109,28 @@ export async function getTeamEvaluationBreakdown(
       .select("id, round_id, judge_id, status, comments, total_score, submitted_at")
       .eq("team_id", teamId)
       .in("round_id", roundIds),
+    supabase
+      .from("judge_teams")
+      .select("round_id, judge_id, team_id")
+      .in("round_id", roundIds),
   ]);
+
+  // A judge with their own team list only scores the teams on it; one without
+  // a list scores every team in the round. So this team's breakdown shows the
+  // judges who actually have to score it, not everyone on the round.
+  const hasTeamList = new Set<string>();
+  const listCoversTeam = new Set<string>();
+  for (const row of (judgeTeamData as
+    | { round_id: string; judge_id: string; team_id: string }[]
+    | null) ?? []) {
+    hasTeamList.add(`${row.round_id}:${row.judge_id}`);
+    if (row.team_id === teamId)
+      listCoversTeam.add(`${row.round_id}:${row.judge_id}`);
+  }
+  const judgesThisTeam = (roundId: string, judgeId: string) => {
+    const key = `${roundId}:${judgeId}`;
+    return !hasTeamList.has(key) || listCoversTeam.has(key);
+  };
 
   const evals = (evalData as EvalRow[]) ?? [];
   const evalIds = evals.map((e) => e.id);
@@ -148,7 +170,9 @@ export async function getTeamEvaluationBreakdown(
         weight: Number(c.weight),
       }));
 
-    const roundJudges = assignments.filter((a) => a.round_id === round.id);
+    const roundJudges = assignments.filter(
+      (a) => a.round_id === round.id && judgesThisTeam(round.id, a.judge_id),
+    );
 
     const judges: JudgeBreakdown[] = roundJudges
       .map((a) => {

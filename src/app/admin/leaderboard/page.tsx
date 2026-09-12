@@ -51,7 +51,9 @@ export default async function LeaderboardPage({
   let teams: TeamRow[] = [];
   let rounds: RoundRow[] = [];
   let evals: EvalRow[] = [];
-  let judgesPerRound = 0;
+  // Total (judge, team) scorecards this event expects — judges split across
+  // teams score fewer than everyone-scores-everyone.
+  let expectedScorecards = 0;
   let leaderCount = 0;
   let sponsors: Sponsor[] = [];
 
@@ -88,18 +90,38 @@ export default async function LeaderboardPage({
 
     const roundIds = rounds.map((x) => x.id);
     if (roundIds.length) {
-      const [{ data: e }, { count }] = await Promise.all([
-        supabase
-          .from("evaluations")
-          .select("id, round_id, team_id, total_score, status")
-          .in("round_id", roundIds),
-        supabase
-          .from("round_judges")
-          .select("*", { count: "exact", head: true })
-          .in("round_id", roundIds),
-      ]);
+      const [{ data: e }, { data: roundJudgeRows }, { data: judgeTeamRows }] =
+        await Promise.all([
+          supabase
+            .from("evaluations")
+            .select("id, round_id, team_id, total_score, status")
+            .in("round_id", roundIds),
+          supabase
+            .from("round_judges")
+            .select("round_id, judge_id")
+            .in("round_id", roundIds),
+          supabase
+            .from("judge_teams")
+            .select("round_id, judge_id")
+            .in("round_id", roundIds),
+        ]);
       evals = (e as EvalRow[]) ?? [];
-      judgesPerRound = count ?? 0;
+
+      // How many teams each judge was given, where they were given a list.
+      const listSize = new Map<string, number>();
+      for (const row of (judgeTeamRows as
+        | { round_id: string; judge_id: string }[]
+        | null) ?? []) {
+        const key = `${row.round_id}:${row.judge_id}`;
+        listSize.set(key, (listSize.get(key) ?? 0) + 1);
+      }
+      // A judge without a list is expected to score every team in the round.
+      for (const rj of (roundJudgeRows as
+        | { round_id: string; judge_id: string }[]
+        | null) ?? []) {
+        expectedScorecards +=
+          listSize.get(`${rj.round_id}:${rj.judge_id}`) ?? teams.length;
+      }
 
       // Highest single criterion score per team (tie-break tier 2), from the
       // per-criterion scores of submitted evaluations.
@@ -127,8 +149,9 @@ export default async function LeaderboardPage({
 
   const standings = computeStandings(teams, rounds, evals, { maxCriterion });
   const submittedCount = evals.filter((e) => e.status === "submitted").length;
-  const expected = teams.length * judgesPerRound;
-  const completion = expected ? Math.round((submittedCount / expected) * 100) : 0;
+  const completion = expectedScorecards
+    ? Math.round((submittedCount / expectedScorecards) * 100)
+    : 0;
 
   const chartData = standings
     .filter((s) => s.overall > 0)
