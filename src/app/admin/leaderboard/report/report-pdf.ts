@@ -846,7 +846,10 @@ function evaluatorSignature(
       columnStyles: { 0: { cellWidth: 16 }, ...numeric(4, 2) },
     });
 
-    y = rd.space(y, 40);
+    // The summary and the signature it carries get a page of their own, so
+    // what the evaluator signs is never a fragment at the foot of their
+    // detailed marks.
+    y = rd.newPage("portrait");
     y = rd.heading(y, `Evaluator summary — ${evaluator.judgeName}`, 9);
     y = table({
       startY: y,
