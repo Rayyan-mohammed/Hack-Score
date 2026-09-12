@@ -43,6 +43,7 @@ const LIMITS: Record<keyof RegistrationValues, number> = {
   college_email: 160,
   problem_statement_code: 40,
   problem_statement: 2000,
+  domain: 120,
   team_name: 80,
   members: 600,
 };

@@ -1,9 +1,19 @@
-import type { Sponsor } from "../hackathons/sponsors-manager";
+/** A sponsor as every surface that shows one needs it. */
+export type Sponsor = {
+  id: string;
+  name: string;
+  logo_url: string;
+  label: string;
+  sort_order: number;
+};
 
 /**
- * Sponsor strip for the leaderboard. Sponsors arrive sorted by sort_order, so
- * #1 gets the title-sponsor treatment (larger, on its own line) and the rest
- * sit in a smaller row beneath. Renders nothing when there are no sponsors.
+ * Sponsor strip, shown on the leaderboard and above the public registration
+ * form so participants see who the event is run with.
+ *
+ * Sponsors arrive sorted by sort_order, so #1 gets the title-sponsor treatment
+ * (larger, on its own line) and the rest sit in a smaller row beneath. Renders
+ * nothing when there are no sponsors.
  *
  * Logos sit on a fixed-height white chip with object-contain, so wildly
  * different aspect ratios never shift the layout and dark logos stay visible

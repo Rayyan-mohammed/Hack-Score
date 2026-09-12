@@ -12,6 +12,7 @@ import {
   type RegistrationValues,
 } from "@/lib/registration-form";
 import { parseMembers, validateTeamSize } from "@/lib/team-validation";
+import type { Sponsor } from "@/components/sponsor-strip";
 
 export type ProblemStatement = {
   id: string;
@@ -31,6 +32,7 @@ export type RegistrationRow = {
   problem_statement_id: string | null;
   problem_statement_code: string | null;
   problem_statement: string | null;
+  domain: string | null;
   team_name: string | null;
   members: string | null;
   team_id: string | null;
@@ -62,7 +64,7 @@ const HACKATHON_COLUMNS =
 
 const REGISTRATION_COLUMNS =
   "id, hackathon_id, token, full_name, sap_id, mobile, college_email, " +
-  "problem_statement_id, problem_statement_code, problem_statement, " +
+  "problem_statement_id, problem_statement_code, problem_statement, domain, " +
   "team_name, members, team_id, status, " +
   "auto_submitted, draft_expires_at, submitted_at, created_at";
 
@@ -147,6 +149,18 @@ export async function getOpenHackathon(): Promise<RegistrationHackathon | null> 
   return (data as unknown as RegistrationHackathon) ?? null;
 }
 
+/** The event's sponsors, shown above the public registration form. */
+export async function listSponsors(hackathonId: string): Promise<Sponsor[]> {
+  if (!registrationsConfigured()) return [];
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from("sponsors")
+    .select("id, name, logo_url, label, sort_order")
+    .eq("hackathon_id", hackathonId)
+    .order("sort_order", { ascending: true });
+  return (data as Sponsor[]) ?? [];
+}
+
 export async function listProblemStatements(
   hackathonId: string,
 ): Promise<ProblemStatement[]> {
@@ -218,6 +232,7 @@ export function toValues(row: RegistrationRow): RegistrationValues {
     college_email: row.college_email ?? "",
     problem_statement_code: row.problem_statement_code ?? "",
     problem_statement: row.problem_statement ?? "",
+    domain: row.domain ?? "",
     team_name: row.team_name ?? "",
     members: row.members ?? "",
   };
@@ -260,7 +275,7 @@ export async function createTeamFromRegistration(
   const { data: registration } = await supabase
     .from("registrations")
     .select(
-      "id, team_id, full_name, college_email, team_name, members, problem_statement, problem_statement_code",
+      "id, team_id, full_name, college_email, team_name, members, problem_statement, problem_statement_code, domain",
     )
     .eq("token", token)
     .maybeSingle();
@@ -321,6 +336,9 @@ export async function createTeamFromRegistration(
         team_leader_email: registration.college_email,
         problem_statement: registration.problem_statement,
         problem_statement_code: registration.problem_statement_code,
+        // The form's "Domain" is the same thing the rest of the app calls a
+        // track, so the admin Teams table and exports pick it up for free.
+        track: registration.domain,
       })
       .select("id, team_code")
       .single();

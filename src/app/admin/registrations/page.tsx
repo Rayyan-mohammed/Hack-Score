@@ -169,6 +169,11 @@ export default async function RegistrationsPage({
                       <span className="block truncate text-xs">
                         {r.problem_statement || "—"}
                       </span>
+                      {r.domain && (
+                        <span className="block truncate text-xs text-subtle">
+                          {r.domain}
+                        </span>
+                      )}
                     </TD>
                     <TD>
                       {r.team_id && teamCodeById.get(r.team_id) ? (

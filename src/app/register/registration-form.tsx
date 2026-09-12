@@ -356,7 +356,7 @@ export function RegistrationForm({
 
       <Card>
         <CardHeader>
-          <CardTitle>Your details</CardTitle>
+          <CardTitle>Team Details</CardTitle>
         </CardHeader>
         <CardContent>
           {/* Not a <form action> — every field autosaves as a draft, and the
@@ -364,7 +364,7 @@ export function RegistrationForm({
           <div className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <Label htmlFor="full_name">Name</Label>
+                <Label htmlFor="full_name">Team Leader Name</Label>
                 <Input
                   id="full_name"
                   name="full_name"
@@ -438,24 +438,11 @@ export function RegistrationForm({
                   Team members
                 </Label>
                 <p className="mb-2.5 text-xs text-subtle">
-                  One name per row. The first row is you — the team leader —
-                  filled in from your name above.
+                  One name per row. You are Member 1 — the team leader — from
+                  the name you gave above, so list the rest of your team here.
                 </p>
 
                 <div className="space-y-2">
-                  <div className="grid gap-1.5 sm:grid-cols-[9.5rem_1fr] sm:items-center sm:gap-3">
-                    <span className="text-xs font-medium text-violet-bright">
-                      Team Leader
-                    </span>
-                    <Input
-                      readOnly
-                      aria-label="Team leader"
-                      value={values.full_name}
-                      placeholder="Enter your name in “Name” above"
-                      className="cursor-default"
-                    />
-                  </div>
-
                   {memberSlots === 0 ? (
                     <p className="text-xs text-muted">
                       This event is for solo participants — no extra members
@@ -529,7 +516,7 @@ export function RegistrationForm({
                   ) : (
                     <Input
                       id="ps_choice"
-                      placeholder="PS-001"
+                      placeholder="SIH26001"
                       value={values.problem_statement_code}
                       disabled={busy}
                       onChange={(e) =>
@@ -542,7 +529,7 @@ export function RegistrationForm({
                     <Input
                       aria-label="Problem statement ID"
                       className="mt-2"
-                      placeholder="PS-001"
+                      placeholder="SIH26001"
                       value={values.problem_statement_code}
                       disabled={busy}
                       onChange={(e) =>
@@ -569,6 +556,10 @@ export function RegistrationForm({
 
               <div className="mt-4">
                 <Label htmlFor="problem_statement">Problem statement</Label>
+                <p className="mb-1.5 text-xs text-subtle">
+                  Enter your complete problem statement, exactly as it is
+                  worded by the organisers.
+                </p>
                 <Textarea
                   id="problem_statement"
                   name="problem_statement"
@@ -590,6 +581,22 @@ export function RegistrationForm({
                     to write your own.
                   </p>
                 )}
+              </div>
+
+              <div className="mt-4">
+                <Label htmlFor="domain">Domain</Label>
+                <p className="mb-1.5 text-xs text-subtle">
+                  The theme your problem statement falls under.
+                </p>
+                <Input
+                  id="domain"
+                  name="domain"
+                  value={values.domain}
+                  disabled={busy}
+                  onChange={(e) => setField("domain", e.target.value)}
+                  placeholder="Smart Automation"
+                  required
+                />
               </div>
             </div>
 

@@ -19,6 +19,8 @@ export type RegistrationValues = {
   college_email: string;
   problem_statement_code: string;
   problem_statement: string;
+  /** Problem-statement domain, e.g. "Smart Automation". */
+  domain: string;
   /** Team the registrant leads. On submit this becomes a real team row. */
   team_name: string;
   /** Team-mates, semicolon separated — same format as the CSV import. */
@@ -32,6 +34,7 @@ export const EMPTY_REGISTRATION: RegistrationValues = {
   college_email: "",
   problem_statement_code: "",
   problem_statement: "",
+  domain: "",
   team_name: "",
   members: "",
 };
@@ -82,6 +85,7 @@ export function validateRegistration(
     return "Select or enter a problem statement ID.";
   if (v.problem_statement.trim().length < 3)
     return "Enter the problem statement.";
+  if (v.domain.trim().length < 2) return "Enter the domain.";
   return null;
 }
 
@@ -101,6 +105,7 @@ export function missingFields(
     gaps.push("Team members");
   if (!v.problem_statement_code.trim()) gaps.push("Problem statement ID");
   if (v.problem_statement.trim().length < 3) gaps.push("Problem statement");
+  if (v.domain.trim().length < 2) gaps.push("Domain");
   return gaps;
 }
 

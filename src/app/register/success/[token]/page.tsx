@@ -249,6 +249,7 @@ export default async function RegistrationSuccessPage({
               value={values.problem_statement_code}
             />
             <Row label="Problem statement" value={values.problem_statement} />
+            <Row label="Domain" value={values.domain} />
           </CardContent>
         </Card>
 

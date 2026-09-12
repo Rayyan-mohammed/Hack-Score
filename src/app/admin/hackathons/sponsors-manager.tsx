@@ -14,13 +14,8 @@ import {
   type SponsorState,
 } from "./sponsor-actions";
 
-export type Sponsor = {
-  id: string;
-  name: string;
-  logo_url: string;
-  label: string;
-  sort_order: number;
-};
+export type { Sponsor } from "@/components/sponsor-strip";
+import type { Sponsor } from "@/components/sponsor-strip";
 
 const LABEL_PRESETS = [
   "Title sponsor",

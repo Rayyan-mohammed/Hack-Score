@@ -10,9 +10,11 @@ import {
   getRegistrationByToken,
   getRegistrationHackathon,
   listProblemStatements,
+  listSponsors,
   teamSizeBounds,
   toValues,
 } from "@/lib/registrations";
+import { SponsorStrip } from "@/components/sponsor-strip";
 import { RegistrationForm } from "../registration-form";
 
 export const metadata: Metadata = {
@@ -50,7 +52,10 @@ export default async function RegisterPage({
 
   const mine = found?.status === "draft" ? found : null;
 
-  const problemStatements = await listProblemStatements(hackathonId);
+  const [problemStatements, sponsors] = await Promise.all([
+    listProblemStatements(hackathonId),
+    listSponsors(hackathonId),
+  ]);
   const bounds = teamSizeBounds(hackathon);
 
   return (
@@ -58,6 +63,14 @@ export default async function RegisterPage({
       <div className="mb-8 flex justify-center">
         <Brand size="lg" />
       </div>
+
+      {/* Who the event is run with — shown before the form so participants
+          see the collaborators up front. */}
+      {sponsors.length > 0 && (
+        <div className="mb-6">
+          <SponsorStrip sponsors={sponsors} />
+        </div>
+      )}
 
       <div className="mb-6 text-center">
         <p className="text-sm text-muted">{hackathon.name}</p>

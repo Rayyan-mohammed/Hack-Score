@@ -23,8 +23,8 @@ import { Button } from "@/components/ui/button";
 import { HackathonSelect } from "./hackathon-select";
 import { TopTeamsChart } from "./top-teams-chart";
 import { PublishControl } from "./publish-control";
-import { SponsorStrip } from "./sponsor-strip";
-import type { Sponsor } from "../hackathons/sponsors-manager";
+import { SponsorStrip } from "@/components/sponsor-strip";
+import type { Sponsor } from "@/components/sponsor-strip";
 
 // Allow up to 60s for bulk result emails (applies on Vercel Pro; Hobby caps
 // at 10s regardless).
