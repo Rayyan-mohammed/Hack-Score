@@ -151,7 +151,6 @@ export function RegistrationForm({
   // shows "changes save automatically" until then.
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
@@ -264,7 +263,6 @@ export function RegistrationForm({
   const setField = (key: keyof RegistrationValues, value: string) => {
     setValues((v) => ({ ...v, [key]: value }));
     setDirty(true);
-    setNotice(null);
   };
 
   /** One roster row changed — rewrite the stored members string from all rows. */
@@ -277,7 +275,6 @@ export function RegistrationForm({
 
   const onPickStatement = (code: string) => {
     setChoice(code);
-    setNotice(null);
     setDirty(true);
     if (code === OTHER || code === "") {
       setValues((v) => ({
@@ -295,14 +292,8 @@ export function RegistrationForm({
     }));
   };
 
-  const onSaveDraft = async () => {
-    const res = await persist();
-    if (res?.ok) setNotice("Draft saved. You can come back to this link later.");
-  };
-
   const onSubmit = async () => {
     setError(null);
-    setNotice(null);
 
     const invalid = validateRegistration(values, { min: minSize, max: maxSize });
     if (invalid) {
@@ -644,17 +635,8 @@ export function RegistrationForm({
             </div>
 
             <Toast tone="error" message={error} />
-            <Toast tone="success" message={notice} />
 
             <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={busy || saving}
-                onClick={() => void onSaveDraft()}
-              >
-                {saving ? "Saving…" : "Save draft"}
-              </Button>
               <Button
                 type="button"
                 disabled={busy}
