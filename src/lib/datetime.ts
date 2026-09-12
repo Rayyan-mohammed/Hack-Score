@@ -58,3 +58,18 @@ export function isoDateInEventZone(value: Date = new Date()): string {
     timeZone: EVENT_TIME_ZONE,
   }).format(value);
 }
+
+/**
+ * "2026-09-13T18:00" (what a datetime-local input submits) -> the ISO instant
+ * it means in the event's timezone. India has no daylight saving, so the
+ * offset is a constant +05:30 and no lookup table is needed.
+ */
+export function eventLocalToIso(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const withSeconds = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(trimmed)
+    ? `${trimmed}:00`
+    : trimmed;
+  const date = new Date(`${withSeconds}+05:30`);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}

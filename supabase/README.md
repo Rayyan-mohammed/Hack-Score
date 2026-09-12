@@ -24,6 +24,8 @@ in order:
     storage bucket the PPT template is uploaded to
 11. `0011_registration_domain.sql` — the domain field on the registration form
 12. `0012_judge_teams.sql` — which teams a particular judge scores in a round
+13. `0013_evaluation_deadline.sql` — the event's scoring deadline, after which
+    saved drafts are submitted automatically
 
 (Or, with the Supabase CLI linked to your project: `supabase db push`.)
 
@@ -52,6 +54,12 @@ in order:
 > Splitting teams between judges (**Judges → Teams for this judge**) needs
 > `0012_judge_teams.sql`. Without it nothing breaks — every judge simply scores
 > every team in their round, as before — but ticking teams has no effect.
+
+> **Important:** the scoring deadline needs `0013_evaluation_deadline.sql`.
+> Apply it **before** deploying that code: the hackathon form writes
+> `evaluation_deadline`, so saving a hackathon fails on the missing column.
+> Once applied, set the deadline on the hackathon (**Hackathons → edit →
+> Scoring deadline**); leaving it blank keeps drafts open indefinitely.
 
 ## Config for the new features
 

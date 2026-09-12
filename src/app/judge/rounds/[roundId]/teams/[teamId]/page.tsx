@@ -8,6 +8,7 @@ import { Badge, TrackBadge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/states";
 import { EvaluationForm } from "../../../../evaluation-form";
 import { getJudgeTeamIds, getRoundParticipantIds } from "@/lib/rounds";
+import { finalizeExpiredEvaluations } from "@/lib/evaluation-deadline";
 
 export default async function EvaluatePage({
   params,
@@ -16,6 +17,7 @@ export default async function EvaluatePage({
 }) {
   const { roundId, teamId } = await params;
   const { user } = await requireJudge();
+  await finalizeExpiredEvaluations();
   const supabase = await createClient();
 
   // Everything this page needs, fetched at once rather than one after another

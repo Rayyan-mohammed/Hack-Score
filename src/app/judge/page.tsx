@@ -10,6 +10,13 @@ import {
   getParticipantsMap,
   participates,
 } from "@/lib/rounds";
+import {
+  DRAFT_REMINDER_HOURS,
+  finalizeExpiredEvaluations,
+  staleDraftCutoff,
+} from "@/lib/evaluation-deadline";
+import { formatDateTime } from "@/lib/datetime";
+import { DeadlineBanner, type StaleDraft } from "./deadline-banner";
 
 type RoundRef = {
   id: string;
@@ -22,6 +29,11 @@ type RoundRef = {
 
 export default async function JudgeDashboard() {
   const { user } = await requireJudge();
+
+  // Close anything the deadline has caught up with before showing the board,
+  // so a judge never sees a "draft" that is really already final.
+  await finalizeExpiredEvaluations();
+
   const supabase = await createClient();
 
   const { data: assignments } = await supabase
@@ -52,7 +64,7 @@ export default async function JudgeDashboard() {
     roundIds.length
       ? supabase
           .from("evaluations")
-          .select("round_id, team_id, status")
+          .select("round_id, team_id, status, updated_at")
           .eq("judge_id", user!.id)
           .in("round_id", roundIds)
       : Promise.resolve({ data: [] }),
@@ -73,17 +85,64 @@ export default async function JudgeDashboard() {
       hackathon_id: string;
       problem_statement_code: string | null;
     }[]) ?? [];
+  const evalRows =
+    (myEvals as {
+      round_id: string;
+      team_id: string;
+      status: string;
+      updated_at: string;
+    }[]) ?? [];
+
   const evalMap = new Map<string, string>();
-  for (const e of (myEvals as { round_id: string; team_id: string; status: string }[]) ??
-    []) {
+  for (const e of evalRows) {
     evalMap.set(`${e.round_id}:${e.team_id}`, e.status);
   }
+
+  // The scoring deadline is a property of the event, so take the earliest of
+  // the events this judge works on — whichever closes first governs them.
+  const { data: deadlineRows } = hackathonIds.length
+    ? await supabase
+        .from("hackathons")
+        .select("evaluation_deadline")
+        .in("id", hackathonIds)
+        .not("evaluation_deadline", "is", null)
+        .order("evaluation_deadline", { ascending: true })
+        .limit(1)
+    : { data: null };
+  const deadline = deadlineRows?.[0]?.evaluation_deadline ?? null;
+
+  // Drafts saved a while ago and never submitted — what the judge most likely
+  // forgot about.
+  const cutoff = staleDraftCutoff();
+  const staleDrafts: StaleDraft[] = evalRows
+    .filter((e) => e.status === "draft" && e.updated_at <= cutoff)
+    .map((e) => {
+      const round = rounds.find((r) => r.id === e.round_id);
+      const team = teamList.find((t) => t.id === e.team_id);
+      if (!round || !team) return null;
+      return {
+        roundId: round.id,
+        roundName: `${round.hackathons?.name ?? ""} · ${round.name}`.trim(),
+        teamId: team.id,
+        teamCode: team.team_code,
+        teamName: team.name,
+        savedAt: e.updated_at,
+      };
+    })
+    .filter(Boolean) as StaleDraft[];
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="My Evaluations"
         description="Score the teams assigned to your rounds."
+      />
+
+      <DeadlineBanner
+        deadline={deadline}
+        deadlineLabel={formatDateTime(deadline)}
+        staleDrafts={staleDrafts}
+        reminderHours={DRAFT_REMINDER_HOURS}
       />
 
       {rounds.length === 0 && (

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { Toast } from "@/components/ui/toast";
 import type { FormState } from "./actions";
+import { EVENT_TIME_ZONE } from "@/lib/datetime";
 
 type Values = {
   id?: string;
@@ -14,6 +15,7 @@ type Values = {
   venue?: string | null;
   start_date?: string | null;
   end_date?: string | null;
+  evaluation_deadline?: string | null;
   min_team_size?: number;
   max_team_size?: number;
 };
@@ -25,6 +27,23 @@ function SubmitButton({ label }: { label: string }) {
       {pending ? "Saving…" : label}
     </Button>
   );
+}
+
+/** ISO instant -> the "YYYY-MM-DDTHH:mm" a datetime-local input expects,
+ *  expressed in the event's timezone rather than the browser's. */
+function toLocalInput(iso?: string | null): string {
+  if (!iso) return "";
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: EVENT_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date(iso));
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`;
 }
 
 export function HackathonForm({
@@ -89,6 +108,23 @@ export function HackathonForm({
           />
         </div>
       </div>
+      <div>
+        <Label htmlFor="evaluation_deadline">
+          Scoring deadline <span className="text-subtle">(optional)</span>
+        </Label>
+        <Input
+          id="evaluation_deadline"
+          name="evaluation_deadline"
+          type="datetime-local"
+          defaultValue={toLocalInput(values.evaluation_deadline)}
+        />
+        <p className="mt-1 text-xs text-subtle">
+          At this moment every draft a judge has saved but not submitted is
+          submitted automatically, as it stands. Judges see a countdown. Leave
+          blank and drafts stay open indefinitely.
+        </p>
+      </div>
+
       {startDate && endDate && startDate > endDate && (
         <p className="text-xs text-warning">
           End date is before the start date — please fix before saving.

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { finalizeExpiredEvaluations } from "@/lib/evaluation-deadline";
 import { PageHeader } from "@/components/page-header";
 import {
   Card,
@@ -36,6 +37,10 @@ export default async function LeaderboardPage({
   searchParams: Promise<{ h?: string }>;
 }) {
   const { h } = await searchParams;
+
+  // Drafts left open past the event's scoring deadline are submitted as they
+  // stand before anything is totted up.
+  await finalizeExpiredEvaluations();
   const supabase = await createClient();
 
   const { data: hackathons } = await supabase

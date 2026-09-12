@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser, requireAdmin } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { eventLocalToIso } from "@/lib/datetime";
 import { validateHackathonDates } from "@/lib/date-validation";
 
 export type FormState = { error?: string; message?: string };
@@ -16,6 +17,9 @@ function parseHackathon(formData: FormData) {
     venue: String(formData.get("venue") ?? "").trim() || null,
     start_date: String(formData.get("start_date") ?? "") || null,
     end_date: String(formData.get("end_date") ?? "") || null,
+    evaluation_deadline: eventLocalToIso(
+      String(formData.get("evaluation_deadline") ?? ""),
+    ),
     min_team_size: Number(formData.get("min_team_size") ?? 1),
     max_team_size: Number(formData.get("max_team_size") ?? 6),
   };
