@@ -69,7 +69,30 @@ export default async function TeamsPage({
         description="Add teams manually, import a CSV, or share the registration form."
         action={
           list.length > 0 ? (
-            <HackathonSelect hackathons={list} selected={selected} />
+            <div className="flex flex-wrap items-center gap-2">
+              {selected && rows.length > 0 && (
+                <a
+                  href={`/admin/teams/export?h=${selected}`}
+                  download
+                  className="inline-flex h-11 items-center gap-2 rounded-xl border border-border-strong px-3 text-sm font-medium text-foreground transition-colors duration-150 hover:border-violet/60 hover:text-violet-bright sm:h-10"
+                >
+                  <svg
+                    viewBox="0 0 20 20"
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.75"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M10 3v9m0 0 3-3m-3 3-3-3M4 15v2h12v-2" />
+                  </svg>
+                  Download CSV
+                </a>
+              )}
+              <HackathonSelect hackathons={list} selected={selected} />
+            </div>
           ) : undefined
         }
       />
