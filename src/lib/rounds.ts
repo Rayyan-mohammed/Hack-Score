@@ -47,3 +47,43 @@ export function participates(
   const set = participants.get(roundId);
   return set ? set.has(teamId) : true;
 }
+
+/**
+ * Which teams each round restricts a given judge to.
+ *
+ * Same shape and same rule as `getParticipantsMap`: a round is only present
+ * when that judge has an explicit team list for it. A round absent from the
+ * map means the judge scores every team participating in that round, which is
+ * how every round behaved before per-judge assignment existed.
+ */
+export async function getJudgeTeamMap(
+  supabase: SupabaseClient,
+  judgeId: string,
+  roundIds: string[],
+): Promise<Map<string, Set<string>>> {
+  const map = new Map<string, Set<string>>();
+  if (roundIds.length === 0) return map;
+
+  const { data } = await supabase
+    .from("judge_teams")
+    .select("round_id, team_id")
+    .eq("judge_id", judgeId)
+    .in("round_id", roundIds);
+
+  for (const row of data ?? []) {
+    const set = map.get(row.round_id) ?? new Set<string>();
+    set.add(row.team_id);
+    map.set(row.round_id, set);
+  }
+  return map;
+}
+
+/** Single-round convenience: null means "no per-judge list → every team". */
+export async function getJudgeTeamIds(
+  supabase: SupabaseClient,
+  judgeId: string,
+  roundId: string,
+): Promise<Set<string> | null> {
+  const map = await getJudgeTeamMap(supabase, judgeId, [roundId]);
+  return map.get(roundId) ?? null;
+}

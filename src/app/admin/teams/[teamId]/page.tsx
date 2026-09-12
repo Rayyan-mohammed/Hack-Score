@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge, TrackBadge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/states";
+import { formatDateTime } from "@/lib/datetime";
 
 type Team = {
   id: string;
@@ -140,7 +141,7 @@ export default async function TeamViewPage({
             />
             <Row
               label="Added"
-              value={new Date(team.created_at).toLocaleString()}
+              value={formatDateTime(team.created_at)}
             />
           </CardContent>
         </Card>
@@ -241,7 +242,7 @@ export default async function TeamViewPage({
               label="Submitted"
               value={
                 registration.submitted_at
-                  ? `${new Date(registration.submitted_at).toLocaleString()}${
+                  ? `${formatDateTime(registration.submitted_at)}${
                       registration.auto_submitted ? " (auto-submitted)" : ""
                     }`
                   : registration.status

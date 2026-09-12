@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth";
 import { ALL_JUDGES } from "@/lib/judges";
+import { logAudit } from "@/lib/audit";
 
 export type FormState = { error?: string; message?: string };
 
@@ -52,35 +53,68 @@ export async function createJudge(
 }
 
 export async function assignJudge(formData: FormData) {
-  await requireAdmin();
+  const { user } = await requireAdmin();
   const judge_id = String(formData.get("judge_id") ?? "");
   const round_id = String(formData.get("round_id") ?? "");
   if (!judge_id || !round_id) return;
 
+  // Teams ticked in the form. None ticked means "score every team in the
+  // round", which is what a judge got before per-team assignment existed.
+  const team_ids = formData
+    .getAll("team_ids")
+    .map((t) => String(t))
+    .filter(Boolean);
+
   const supabase = await createClient();
 
-  // "All judges": one upsert for the whole panel. Judges already on the round
-  // are left as they are rather than erroring, so this is safe to repeat and
-  // safe to use after adding a judge.
+  // "All judges" assigns the whole panel in one go. Judges already on the
+  // round are left as they are rather than erroring, so this is safe to repeat
+  // and safe to use again after adding a judge.
+  let judgeIds = [judge_id];
   if (judge_id === ALL_JUDGES) {
     const { data: judges } = await supabase
       .from("profiles")
       .select("id")
       .eq("role", "judge");
-    const rows = (judges ?? []).map((j) => ({ judge_id: j.id, round_id }));
-    if (rows.length > 0)
-      await supabase
-        .from("round_judges")
-        .upsert(rows, { onConflict: "round_id,judge_id" });
-    revalidatePath("/admin/judges");
-    return;
+    judgeIds = (judges ?? []).map((j) => j.id);
   }
+  if (judgeIds.length === 0) return;
 
   await supabase
     .from("round_judges")
-    .upsert({ judge_id, round_id }, { onConflict: "round_id,judge_id" });
+    .upsert(
+      judgeIds.map((id) => ({ judge_id: id, round_id })),
+      { onConflict: "round_id,judge_id" },
+    );
+
+  // The ticked set replaces whatever the judge had for this round, so
+  // unticking a team takes it away. Untouched rounds are not affected.
+  await supabase
+    .from("judge_teams")
+    .delete()
+    .eq("round_id", round_id)
+    .in("judge_id", judgeIds);
+
+  if (team_ids.length > 0)
+    await supabase.from("judge_teams").insert(
+      judgeIds.flatMap((id) =>
+        team_ids.map((team_id) => ({ round_id, judge_id: id, team_id })),
+      ),
+    );
+
+  await logAudit({
+    actorId: user.id,
+    action: "judge.assign",
+    entity: "round",
+    entityId: round_id,
+    meta: {
+      judges: judgeIds.length,
+      teams: team_ids.length === 0 ? "all teams in the round" : team_ids.length,
+    },
+  });
 
   revalidatePath("/admin/judges");
+  revalidatePath("/judge");
 }
 
 export async function unassignJudge(formData: FormData) {
@@ -95,5 +129,14 @@ export async function unassignJudge(formData: FormData) {
     .eq("judge_id", judge_id)
     .eq("round_id", round_id);
 
+  // Their per-team list for that round goes with it, so re-adding them later
+  // starts from "every team" rather than a stale subset.
+  await supabase
+    .from("judge_teams")
+    .delete()
+    .eq("judge_id", judge_id)
+    .eq("round_id", round_id);
+
   revalidatePath("/admin/judges");
+  revalidatePath("/judge");
 }

@@ -21,6 +21,7 @@ import {
 } from "./actions";
 import { Toast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
+import { formatDateTime } from "@/lib/datetime";
 
 type HackathonRow = {
   id: string;
@@ -217,7 +218,7 @@ export default async function RegistrationsPage({
                           <span className="text-xs text-subtle">
                             {r.auto_submitted ? "auto · " : ""}
                             {r.submitted_at
-                              ? new Date(r.submitted_at).toLocaleString()
+                              ? formatDateTime(r.submitted_at)
                               : ""}
                           </span>
                         )}

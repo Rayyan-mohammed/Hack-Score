@@ -18,6 +18,7 @@ import {
   slotsToMembers,
   validateTeamSize,
 } from "@/lib/team-validation";
+import { formatTime } from "@/lib/datetime";
 import type { ProblemStatement } from "@/lib/registrations";
 import { autoSubmitDraft, saveDraft, submitRegistration } from "./actions";
 
@@ -96,7 +97,7 @@ function CountdownBanner({
         {saving
           ? "Saving…"
           : savedAt
-            ? `Saved ${new Date(savedAt).toLocaleTimeString()}`
+            ? `Saved ${formatTime(savedAt)}`
             : "Changes save automatically"}
       </p>
     </div>

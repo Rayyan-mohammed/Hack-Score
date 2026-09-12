@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, THead, TH, TR, TD } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
+import { formatDate } from "@/lib/datetime";
 import { buildReportBundle } from "@/lib/report-data";
 import { fmt, outOf } from "@/lib/report-format";
 import { ReportWorkspace } from "./report-workspace";
@@ -92,7 +93,7 @@ export default async function ReportPage({
             </p>
             <p className="text-xs text-subtle">
               {config.reportDate ||
-                new Date(bundle.generatedAt).toLocaleDateString()}
+                formatDate(bundle.generatedAt)}
               {config.refNumber ? ` · Ref: ${config.refNumber}` : ""}
               {bundle.hackathon.venue ? ` · ${bundle.hackathon.venue}` : ""}
             </p>

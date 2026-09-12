@@ -5,7 +5,11 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge, LiveBadge, StatusBadge } from "@/components/ui/badge";
 import { EmptyCard, EmptyState } from "@/components/ui/states";
-import { getParticipantsMap, participates } from "@/lib/rounds";
+import {
+  getJudgeTeamMap,
+  getParticipantsMap,
+  participates,
+} from "@/lib/rounds";
 
 type RoundRef = {
   id: string;
@@ -54,8 +58,12 @@ export default async function JudgeDashboard() {
       : Promise.resolve({ data: [] }),
   ]);
 
-  // Only show teams shortlisted into each round (empty shortlist ⇒ all teams).
-  const participants = await getParticipantsMap(supabase, roundIds);
+  // Two independent filters, same "empty ⇒ everything" rule: the round's
+  // shortlist, and the teams this judge in particular was assigned.
+  const [participants, myTeams] = await Promise.all([
+    getParticipantsMap(supabase, roundIds),
+    getJudgeTeamMap(supabase, user!.id, roundIds),
+  ]);
 
   const teamList =
     (teams as { id: string; team_code: string; name: string; hackathon_id: string }[]) ??
@@ -84,7 +92,8 @@ export default async function JudgeDashboard() {
         const roundTeams = teamList.filter(
           (t) =>
             t.hackathon_id === round.hackathon_id &&
-            participates(participants, round.id, t.id),
+            participates(participants, round.id, t.id) &&
+            participates(myTeams, round.id, t.id),
         );
         return (
           <Card key={round.id}>
@@ -103,8 +112,8 @@ export default async function JudgeDashboard() {
             <CardContent>
               {roundTeams.length === 0 ? (
                 <EmptyState
-                  title="No teams in this event yet"
-                  description="Teams will appear here once an organiser adds them."
+                  title="No teams assigned to you in this round"
+                  description="Teams appear here once an organiser adds them and assigns them to you."
                 />
               ) : (
                 <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border">

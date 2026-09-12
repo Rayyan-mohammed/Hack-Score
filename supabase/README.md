@@ -22,6 +22,8 @@ in order:
    official evaluation report
 10. `0010_event_resources.sql` — problem statement ID on teams, and the
     storage bucket the PPT template is uploaded to
+11. `0011_registration_domain.sql` — the domain field on the registration form
+12. `0012_judge_teams.sql` — which teams a particular judge scores in a round
 
 (Or, with the Supabase CLI linked to your project: `supabase db push`.)
 
@@ -43,6 +45,13 @@ in order:
 > the `event-resources` bucket — both come from `0010_event_resources.sql`.
 > Apply it **before** deploying this code, or the Teams pages will error on the
 > missing column.
+
+> The registration form's **Domain** field needs `0011_registration_domain.sql`.
+> Apply it before deploying, or every draft save on the public form fails.
+
+> Splitting teams between judges (**Judges → Teams for this judge**) needs
+> `0012_judge_teams.sql`. Without it nothing breaks — every judge simply scores
+> every team in their round, as before — but ticking teams has no effect.
 
 ## Config for the new features
 

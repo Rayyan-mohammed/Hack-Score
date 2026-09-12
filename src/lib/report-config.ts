@@ -1,3 +1,4 @@
+import { isoDateInEventZone } from "@/lib/datetime";
 // Institution / letterhead / signatory settings for the official evaluation
 // report. Stored per hackathon in `hackathons.report_config` (jsonb) and used
 // identically by the on-screen preview, the PDF and the Excel workbook.
@@ -113,14 +114,12 @@ export function readReportConfigForm(get: (key: string) => string): ReportConfig
 
 /** "Official_Evaluation_Report_CodeIT_2026-09-09" (no extension). */
 export function reportFileBase(
+
   config: ReportConfig,
   hackathonName: string,
 ): string {
   const event = config.examName || hackathonName || "Report";
-  const date = (config.reportDate || new Date().toISOString().slice(0, 10)).slice(
-    0,
-    10,
-  );
+  const date = (config.reportDate || isoDateInEventZone()).slice(0, 10);
   const slug = (s: string) =>
     s
       .replace(/[^\w\s-]/g, "")

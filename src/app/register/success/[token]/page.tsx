@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Toast } from "@/components/ui/toast";
 import { missingFields } from "@/lib/registration-form";
 import { parseMembers } from "@/lib/team-validation";
+import { formatDateTime } from "@/lib/datetime";
 import {
   getRegistrationByToken,
   getRegistrationHackathon,
@@ -197,7 +198,7 @@ export default async function RegistrationSuccessPage({
           )}
           {registration.submitted_at && (
             <span className="text-xs text-subtle">
-              {new Date(registration.submitted_at).toLocaleString()}
+              {formatDateTime(registration.submitted_at)}
             </span>
           )}
         </div>

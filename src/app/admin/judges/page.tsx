@@ -4,14 +4,18 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, THead, TH, TR, TD } from "@/components/ui/table";
-import { Label, Select } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/states";
 import { CreateJudgeForm } from "./create-judge-form";
-import { assignJudge, unassignJudge } from "./actions";
-import { ALL_JUDGES } from "@/lib/judges";
+import { AssignJudgeForm, type AssignTeam } from "./assign-form";
+import { unassignJudge } from "./actions";
 
 type Judge = { id: string; full_name: string | null; email: string | null };
-type RoundRow = { id: string; name: string; hackathons: { name: string } | null };
+type RoundRow = {
+  id: string;
+  name: string;
+  hackathon_id: string;
+  hackathons: { name: string } | null;
+};
 type Assignment = {
   round_id: string;
   judge_id: string;
@@ -22,28 +26,59 @@ type Assignment = {
 export default async function JudgesPage() {
   const supabase = await createClient();
 
-  const [{ data: judges }, { data: rounds }, { data: assignments }] =
-    await Promise.all([
-      supabase
-        .from("profiles")
-        .select("id, full_name, email")
-        .eq("role", "judge")
-        .order("full_name", { ascending: true }),
-      supabase
-        .from("rounds")
-        .select("id, name, hackathons(name)")
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("round_judges")
-        .select(
-          "round_id, judge_id, rounds(name, hackathons(name)), profiles(full_name, email)",
-        ),
-    ]);
+  const [
+    { data: judges },
+    { data: rounds },
+    { data: assignments },
+    { data: teams },
+    { data: judgeTeams },
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, full_name, email")
+      .eq("role", "judge")
+      .order("full_name", { ascending: true }),
+    supabase
+      .from("rounds")
+      .select("id, name, hackathon_id, hackathons(name)")
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("round_judges")
+      .select(
+        "round_id, judge_id, rounds(name, hackathons(name)), profiles(full_name, email)",
+      ),
+    supabase
+      .from("teams")
+      .select(
+        "id, hackathon_id, team_code, name, team_leader_name, track, problem_statement_code, problem_statement",
+      )
+      .is("deleted_at", null)
+      .order("team_code", { ascending: true }),
+    supabase.from("judge_teams").select("round_id, judge_id, team_id"),
+  ]);
 
   const judgeList = (judges as Judge[]) ?? [];
   const roundList = (rounds as unknown as RoundRow[]) ?? [];
   const assignList = (assignments as unknown as Assignment[]) ?? [];
+  const teamList = (teams as AssignTeam[]) ?? [];
+
+  // "<roundId>:<judgeId>" -> team ids, so the form opens pre-ticked and the
+  // table below can say how many teams each judge holds.
+  const assignedTeams: Record<string, string[]> = {};
+  for (const row of (judgeTeams as
+    | { round_id: string; judge_id: string; team_id: string }[]
+    | null) ?? []) {
+    const key = `${row.round_id}:${row.judge_id}`;
+    (assignedTeams[key] ??= []).push(row.team_id);
+  }
+
+  // How many teams a round has, to read "5 of 12" against.
+  const roundTeamTotal = (roundId: string) => {
+    const round = roundList.find((r) => r.id === roundId);
+    return teamList.filter((t) => t.hackathon_id === round?.hackathon_id)
+      .length;
+  };
 
   return (
     <div className="space-y-6">
@@ -114,35 +149,17 @@ export default async function JudgesPage() {
               description="You need at least one judge and one round first."
             />
           ) : (
-            <form
-              action={assignJudge}
-              className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end"
-            >
-              <div className="min-w-0 flex-1">
-                <Label htmlFor="judge_id">Judge</Label>
-                <Select id="judge_id" name="judge_id" required>
-                  <option value={ALL_JUDGES}>
-                    All judges ({judgeList.length})
-                  </option>
-                  {judgeList.map((j) => (
-                    <option key={j.id} value={j.id}>
-                      {j.full_name || j.email}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-              <div className="min-w-0 flex-1">
-                <Label htmlFor="round_id">Round</Label>
-                <Select id="round_id" name="round_id" required>
-                  {roundList.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.hackathons?.name} · {r.name}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-              <Button type="submit">Assign</Button>
-            </form>
+            <AssignJudgeForm
+              judges={judgeList}
+              rounds={roundList.map((r) => ({
+                id: r.id,
+                name: r.name,
+                hackathon_id: r.hackathon_id,
+                hackathon_name: r.hackathons?.name ?? null,
+              }))}
+              teams={teamList}
+              assignedTeams={assignedTeams}
+            />
           )}
 
           {assignList.length > 0 && (
@@ -152,6 +169,7 @@ export default async function JudgesPage() {
                   <TH>Judge</TH>
                   <TH>Hackathon</TH>
                   <TH>Round</TH>
+                  <TH>Teams</TH>
                   <TH></TH>
                 </TR>
               </THead>
@@ -165,6 +183,21 @@ export default async function JudgesPage() {
                       {a.rounds?.hackathons?.name ?? "—"}
                     </TD>
                     <TD className="text-muted">{a.rounds?.name ?? "—"}</TD>
+                    <TD className="text-muted">
+                      {(() => {
+                        const picked =
+                          assignedTeams[`${a.round_id}:${a.judge_id}`]?.length ??
+                          0;
+                        const total = roundTeamTotal(a.round_id);
+                        return picked === 0 ? (
+                          <span className="text-xs">All ({total})</span>
+                        ) : (
+                          <span className="text-xs text-foreground">
+                            {picked} of {total}
+                          </span>
+                        );
+                      })()}
+                    </TD>
                     <TD className="text-right">
                       <form action={unassignJudge}>
                         <input type="hidden" name="judge_id" value={a.judge_id} />

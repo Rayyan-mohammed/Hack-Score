@@ -18,6 +18,7 @@
 // and the next section switches back explicitly.
 
 import type { ReportBundle } from "@/lib/report-data";
+import { formatDate, formatDateTime } from "@/lib/datetime";
 import { fmt, outOf } from "@/lib/report-format";
 import { reportFileBase, type ReportConfig } from "@/lib/report-config";
 
@@ -186,7 +187,7 @@ class ReportDoc {
       doc.text(`Page ${i} of ${total}`, w - MARGIN, y, { align: "right" });
 
       const meta = [
-        `Generated ${new Date(generatedAt).toLocaleString()}`,
+        `Generated ${formatDateTime(generatedAt)}`,
         config.refNumber ? `Ref: ${config.refNumber}` : "",
       ]
         .filter(Boolean)
@@ -364,7 +365,7 @@ export async function generateReportPdf(bundle: ReportBundle): Promise<void> {
   };
 
   const reportDate =
-    config.reportDate || new Date(bundle.generatedAt).toLocaleDateString();
+    config.reportDate || formatDate(bundle.generatedAt);
   const period =
     [bundle.hackathon.start_date, bundle.hackathon.end_date]
       .filter(Boolean)
@@ -904,7 +905,7 @@ export async function generateReportPdf(bundle: ReportBundle): Promise<void> {
   y = rd.paragraph(
     y,
     "This report was generated from the evaluation records held in the HackScore system on " +
-      `${new Date(bundle.generatedAt).toLocaleString()}. ` +
+      `${formatDateTime(bundle.generatedAt)}. ` +
       "The figures in Sections 1, 2 and 3 are derived from the same underlying marks and have been checked to reconcile with one another.",
   );
 

@@ -10,6 +10,7 @@ import ExcelJS from "exceljs";
 import { fmt } from "@/lib/report-format";
 import { reportFileBase } from "@/lib/report-config";
 import type { ReportBundle } from "@/lib/report-data";
+import { formatDate, formatDateTime } from "@/lib/datetime";
 
 const HEAD_FILL = "FFEBEDF2";
 const TOTAL_FILL = "FFF3F4F7";
@@ -171,7 +172,7 @@ export async function buildReportWorkbook(
     ["Academic year", config.academicYear || "—"],
     [
       "Report date",
-      config.reportDate || new Date(bundle.generatedAt).toLocaleDateString(),
+      config.reportDate || formatDate(bundle.generatedAt),
     ],
     ["Reference number", config.refNumber || "—"],
     ["Venue", bundle.hackathon.venue || "—"],
@@ -204,7 +205,7 @@ export async function buildReportWorkbook(
       (d, i) => [`Discrepancy ${i + 1}`, d] as [string, string],
     ),
     ["", ""],
-    ["Generated", new Date(bundle.generatedAt).toLocaleString()],
+    ["Generated", formatDateTime(bundle.generatedAt)],
   ];
 
   cover.addRow([config.institution]).font = { bold: true, size: 14 };

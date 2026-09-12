@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrackBadge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/states";
 import { EvaluationForm } from "../../../../evaluation-form";
-import { getRoundParticipantIds } from "@/lib/rounds";
+import { getJudgeTeamIds, getRoundParticipantIds } from "@/lib/rounds";
 
 export default async function EvaluatePage({
   params,
@@ -25,6 +25,7 @@ export default async function EvaluatePage({
     { data: team },
     { data: criteria },
     participantIds,
+    myTeamIds,
     { data: evaluation },
   ] = await Promise.all([
       supabase
@@ -43,6 +44,7 @@ export default async function EvaluatePage({
         .eq("round_id", roundId)
         .order("sort_order", { ascending: true }),
       getRoundParticipantIds(supabase, roundId),
+      getJudgeTeamIds(supabase, user!.id, roundId),
       supabase
         .from("evaluations")
         .select("id, status, comments, evaluation_scores(criterion_id, score)")
@@ -57,6 +59,9 @@ export default async function EvaluatePage({
   // Eliminated teams (not on the round's shortlist) cannot be scored, even via
   // a direct URL. No shortlist ⇒ everyone participates.
   if (participantIds && !participantIds.has(teamId)) notFound();
+
+  // Same for a team handed to a different judge. No list ⇒ every team is ours.
+  if (myTeamIds && !myTeamIds.has(teamId)) notFound();
 
   const initialScores: Record<string, number> = {};
   for (const s of evaluation?.evaluation_scores ?? [])
