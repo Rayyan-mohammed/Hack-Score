@@ -21,6 +21,19 @@ import {
 import type { ProblemStatement } from "@/lib/registrations";
 import { autoSubmitDraft, saveDraft, submitRegistration } from "./actions";
 
+/**
+ * Red asterisk marking a required field. Decorative only — the inputs carry
+ * `required`, and validateRegistration refuses the submit either way, so
+ * screen readers hear it from the field rather than from this.
+ */
+function Req() {
+  return (
+    <span aria-hidden="true" className="text-danger">
+      {" *"}
+    </span>
+  );
+}
+
 /** Sentinel for "my problem statement isn't in the list". */
 const OTHER = "__other";
 
@@ -362,9 +375,16 @@ export function RegistrationForm({
           {/* Not a <form action> — every field autosaves as a draft, and the
               final submit needs a confirmation step first. */}
           <div className="space-y-4">
+            <p className="text-xs text-subtle">
+              All fields are required
+              <Req />.
+            </p>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <Label htmlFor="full_name">Team Leader Name</Label>
+                <Label htmlFor="full_name">
+                  Team Leader Name
+                  <Req />
+                </Label>
                 <Input
                   id="full_name"
                   name="full_name"
@@ -376,7 +396,10 @@ export function RegistrationForm({
                 />
               </div>
               <div>
-                <Label htmlFor="sap_id">SAP ID</Label>
+                <Label htmlFor="sap_id">
+                  SAP ID
+                  <Req />
+                </Label>
                 <Input
                   id="sap_id"
                   name="sap_id"
@@ -389,7 +412,10 @@ export function RegistrationForm({
                 />
               </div>
               <div>
-                <Label htmlFor="mobile">Mobile number</Label>
+                <Label htmlFor="mobile">
+                  Mobile number
+                  <Req />
+                </Label>
                 <Input
                   id="mobile"
                   name="mobile"
@@ -404,7 +430,10 @@ export function RegistrationForm({
                 />
               </div>
               <div>
-                <Label htmlFor="college_email">College email ID</Label>
+                <Label htmlFor="college_email">
+                  College email ID
+                  <Req />
+                </Label>
                 <Input
                   id="college_email"
                   name="college_email"
@@ -421,7 +450,10 @@ export function RegistrationForm({
 
             <div className="space-y-4 border-t border-border pt-4">
               <div>
-                <Label htmlFor="team_name">Team name</Label>
+                <Label htmlFor="team_name">
+                  Team name
+                  <Req />
+                </Label>
                 <Input
                   id="team_name"
                   name="team_name"
@@ -436,6 +468,7 @@ export function RegistrationForm({
               <div>
                 <Label htmlFor={memberSlots > 0 ? "member_2" : undefined}>
                   Team members
+                  <Req />
                 </Label>
                 <p className="mb-2.5 text-xs text-subtle">
                   One name per row. You are Member 1 — the team leader — from
@@ -497,13 +530,17 @@ export function RegistrationForm({
             <div className="border-t border-border pt-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <Label htmlFor="ps_choice">Problem statement ID</Label>
+                  <Label htmlFor="ps_choice">
+                    Problem statement ID
+                    <Req />
+                  </Label>
                   {problemStatements.length > 0 ? (
                     <Select
                       id="ps_choice"
                       value={choice}
                       disabled={busy}
                       onChange={(e) => onPickStatement(e.target.value)}
+                      required
                     >
                       <option value="">Select a problem statement ID…</option>
                       {problemStatements.map((p) => (
@@ -555,10 +592,13 @@ export function RegistrationForm({
               </div>
 
               <div className="mt-4">
-                <Label htmlFor="problem_statement">Problem statement</Label>
+                <Label htmlFor="problem_statement">
+                  Complete problem statement description
+                  <Req />
+                </Label>
                 <p className="mb-1.5 text-xs text-subtle">
-                  Enter your complete problem statement, exactly as it is
-                  worded by the organisers.
+                  Write out the full statement, exactly as it is worded by the
+                  organisers.
                 </p>
                 <Textarea
                   id="problem_statement"
@@ -584,7 +624,10 @@ export function RegistrationForm({
               </div>
 
               <div className="mt-4">
-                <Label htmlFor="domain">Domain</Label>
+                <Label htmlFor="domain">
+                  Domain
+                  <Req />
+                </Label>
                 <p className="mb-1.5 text-xs text-subtle">
                   The theme your problem statement falls under.
                 </p>
