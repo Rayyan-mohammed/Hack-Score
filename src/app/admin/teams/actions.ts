@@ -119,6 +119,8 @@ export async function createTeam(
   }
 
   revalidatePath("/admin/teams");
+  // Judges list these teams too, so clear their routes as well.
+  revalidatePath("/judge", "layout");
   return { message: `Added ${name} (${1 + members.length} members).` };
 }
 
@@ -193,6 +195,8 @@ export async function updateTeam(
   });
 
   revalidatePath("/admin/teams");
+  // Judges list these teams too, so clear their routes as well.
+  revalidatePath("/judge", "layout");
   revalidatePath(`/admin/teams/${id}/edit`);
   return { message: "Team saved successfully." };
 }
@@ -223,6 +227,8 @@ export async function deleteTeam(formData: FormData) {
   });
 
   revalidatePath("/admin/teams");
+  // Judges list these teams too, so clear their routes as well.
+  revalidatePath("/judge", "layout");
 }
 
 // Bulk import teams from an uploaded CSV file.
@@ -319,6 +325,8 @@ export async function importTeams(
   }
 
   revalidatePath("/admin/teams");
+  // Judges list these teams too, so clear their routes as well.
+  revalidatePath("/judge", "layout");
 
   if (imported === 0)
     return {

@@ -77,6 +77,7 @@ export async function setRoundParticipants(
   });
 
   revalidatePath(`/admin/hackathons/${hackathon_id}/rounds/${round_id}`);
+  revalidatePath("/judge", "layout");
   revalidatePath("/admin/leaderboard");
   return {
     message: teamIds.length
@@ -120,6 +121,7 @@ export async function createRound(
 
   if (error) return { error: error.message };
   revalidatePath(`/admin/hackathons/${hackathon_id}`);
+  revalidatePath("/judge", "layout");
   return { message: "Round added." };
 }
 
@@ -160,6 +162,7 @@ export async function updateRound(
   if (error) return { error: error.message };
   revalidatePath(`/admin/hackathons/${hackathon_id}/rounds/${id}`);
   revalidatePath(`/admin/hackathons/${hackathon_id}`);
+  revalidatePath("/judge", "layout");
   return { message: "Round saved successfully." };
 }
 
@@ -190,6 +193,7 @@ export async function deleteRound(formData: FormData) {
   });
 
   revalidatePath(`/admin/hackathons/${hackathon_id}`);
+  revalidatePath("/judge", "layout");
   redirect(`/admin/hackathons/${hackathon_id}`);
 }
 
@@ -228,6 +232,7 @@ export async function addCriterion(
   });
 
   revalidatePath(`/admin/hackathons/${hackathon_id}/rounds/${round_id}`);
+  revalidatePath("/judge", "layout");
   return { message: "Criterion added." };
 }
 
@@ -246,4 +251,5 @@ export async function deleteCriterion(formData: FormData) {
   });
 
   revalidatePath(`/admin/hackathons/${hackathon_id}/rounds/${round_id}`);
+  revalidatePath("/judge", "layout");
 }
