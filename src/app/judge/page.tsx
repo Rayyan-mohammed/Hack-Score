@@ -44,7 +44,7 @@ export default async function JudgeDashboard() {
     hackathonIds.length
       ? supabase
           .from("teams")
-          .select("id, team_code, name, hackathon_id")
+          .select("id, team_code, name, hackathon_id, problem_statement_code")
           .in("hackathon_id", hackathonIds)
           .is("deleted_at", null)
           .order("team_code", { ascending: true })
@@ -66,8 +66,13 @@ export default async function JudgeDashboard() {
   ]);
 
   const teamList =
-    (teams as { id: string; team_code: string; name: string; hackathon_id: string }[]) ??
-    [];
+    (teams as {
+      id: string;
+      team_code: string;
+      name: string;
+      hackathon_id: string;
+      problem_statement_code: string | null;
+    }[]) ?? [];
   const evalMap = new Map<string, string>();
   for (const e of (myEvals as { round_id: string; team_id: string; status: string }[]) ??
     []) {
@@ -125,13 +130,18 @@ export default async function JudgeDashboard() {
                         key={t.id}
                         className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 transition-colors duration-150 hover:bg-surface-raised/60"
                       >
-                        <div>
+                        <div className="min-w-0">
                           <p className="font-medium">
                             <span className="font-mono text-xs text-muted">
                               {t.team_code}
                             </span>{" "}
                             {t.name}
                           </p>
+                          {t.problem_statement_code && (
+                            <p className="mt-0.5 font-mono text-xs text-violet-bright">
+                              {t.problem_statement_code}
+                            </p>
+                          )}
                         </div>
                         <div className="flex items-center gap-3">
                           <StatusBadge

@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireJudge } from "@/lib/auth";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrackBadge } from "@/components/ui/badge";
+import { Badge, TrackBadge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/states";
 import { EvaluationForm } from "../../../../evaluation-form";
 import { getJudgeTeamIds, getRoundParticipantIds } from "@/lib/rounds";
@@ -35,7 +35,9 @@ export default async function EvaluatePage({
         .single(),
       supabase
         .from("teams")
-        .select("id, team_code, name, track, problem_statement")
+        .select(
+          "id, team_code, name, track, problem_statement, problem_statement_code",
+        )
         .eq("id", teamId)
         .single(),
       supabase
@@ -90,13 +92,20 @@ export default async function EvaluatePage({
         <TrackBadge track={team.track} />
       </div>
 
-      {team.problem_statement && (
+      {(team.problem_statement || team.problem_statement_code) && (
         <Card>
           <CardHeader>
-            <CardTitle>Problem statement</CardTitle>
+            <div className="flex flex-wrap items-center gap-2">
+              <CardTitle>Problem statement</CardTitle>
+              {team.problem_statement_code && (
+                <Badge tone="violet">{team.problem_statement_code}</Badge>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted">{team.problem_statement}</p>
+            <p className="text-sm text-muted">
+              {team.problem_statement || "No description given."}
+            </p>
           </CardContent>
         </Card>
       )}
