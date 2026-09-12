@@ -8,6 +8,7 @@ import { Label, Select } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/states";
 import { CreateJudgeForm } from "./create-judge-form";
 import { assignJudge, unassignJudge } from "./actions";
+import { ALL_JUDGES } from "@/lib/judges";
 
 type Judge = { id: string; full_name: string | null; email: string | null };
 type RoundRow = { id: string; name: string; hackathons: { name: string } | null };
@@ -120,6 +121,9 @@ export default async function JudgesPage() {
               <div className="min-w-0 flex-1">
                 <Label htmlFor="judge_id">Judge</Label>
                 <Select id="judge_id" name="judge_id" required>
+                  <option value={ALL_JUDGES}>
+                    All judges ({judgeList.length})
+                  </option>
                   {judgeList.map((j) => (
                     <option key={j.id} value={j.id}>
                       {j.full_name || j.email}

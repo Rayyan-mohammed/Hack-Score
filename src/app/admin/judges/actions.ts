@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth";
+import { ALL_JUDGES } from "@/lib/judges";
 
 export type FormState = { error?: string; message?: string };
 
@@ -57,6 +58,24 @@ export async function assignJudge(formData: FormData) {
   if (!judge_id || !round_id) return;
 
   const supabase = await createClient();
+
+  // "All judges": one upsert for the whole panel. Judges already on the round
+  // are left as they are rather than erroring, so this is safe to repeat and
+  // safe to use after adding a judge.
+  if (judge_id === ALL_JUDGES) {
+    const { data: judges } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("role", "judge");
+    const rows = (judges ?? []).map((j) => ({ judge_id: j.id, round_id }));
+    if (rows.length > 0)
+      await supabase
+        .from("round_judges")
+        .upsert(rows, { onConflict: "round_id,judge_id" });
+    revalidatePath("/admin/judges");
+    return;
+  }
+
   await supabase
     .from("round_judges")
     .upsert({ judge_id, round_id }, { onConflict: "round_id,judge_id" });
