@@ -3,13 +3,21 @@ import { cn } from "@/lib/utils";
 
 export function Table({
   className,
+  dense = false,
   ...props
-}: React.TableHTMLAttributes<HTMLTableElement>) {
+}: React.TableHTMLAttributes<HTMLTableElement> & {
+  /** Tighter cells, for tables with many columns to fit on one screen. */
+  dense?: boolean;
+}) {
   return (
     // Horizontal scroll keeps wide score tables usable at 375px without squashing columns.
     <div className="-mx-px overflow-x-auto rounded-2xl border border-border bg-surface">
       <table
-        className={cn("w-full min-w-max text-sm", className)}
+        className={cn(
+          "w-full min-w-max text-sm",
+          dense && "[&_td]:px-2.5 [&_td]:py-2 [&_th]:px-2.5 [&_th]:py-2",
+          className,
+        )}
         {...props}
       />
     </div>

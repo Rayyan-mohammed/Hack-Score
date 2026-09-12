@@ -18,7 +18,6 @@ type Team = {
   id: string;
   team_code: string;
   name: string;
-  college: string | null;
   track: string | null;
   team_leader_name: string | null;
   problem_statement_code: string | null;
@@ -49,7 +48,7 @@ export default async function TeamsPage({
     ? await supabase
         .from("teams")
         .select(
-          "id, team_code, name, college, track, team_leader_name, problem_statement_code, problem_statement",
+          "id, team_code, name, track, team_leader_name, problem_statement_code, problem_statement",
         )
         .eq("hackathon_id", selected)
         .is("deleted_at", null)
@@ -59,11 +58,8 @@ export default async function TeamsPage({
   const rows = (teams as Team[]) ?? [];
   const origin = await getSiteOrigin();
 
-  // Teams that came from the registration form have no college or track — the
-  // public form never asks for them. Rather than show two columns of dashes,
-  // drop each one unless at least one team actually has it; the leader and the
-  // problem statement are always shown instead.
-  const showCollege = rows.some((t) => t.college);
+  // The public registration form never asks for a track, so teams created from
+  // it have none. Drop the column rather than show a list of dashes.
   const showTrack = rows.some((t) => t.track);
 
   return (
@@ -98,13 +94,12 @@ export default async function TeamsPage({
                   description="Add a team below, or import a whole roster from CSV."
                 />
               ) : (
-                <Table>
+                <Table dense>
                   <THead>
                     <TR>
                       <TH>Code</TH>
                       <TH>Name</TH>
                       <TH>Team leader</TH>
-                      {showCollege && <TH>College</TH>}
                       {showTrack && <TH>Track</TH>}
                       <TH>Problem statement</TH>
                       <TH></TH>
@@ -120,9 +115,6 @@ export default async function TeamsPage({
                         <TD className="text-muted">
                           {t.team_leader_name || "—"}
                         </TD>
-                        {showCollege && (
-                          <TD className="text-muted">{t.college ?? "—"}</TD>
-                        )}
                         {showTrack && (
                           <TD>
                             <TrackBadge track={t.track} />
