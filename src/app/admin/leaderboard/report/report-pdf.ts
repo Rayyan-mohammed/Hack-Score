@@ -19,7 +19,7 @@
 
 import type { ReportBundle } from "@/lib/report-data";
 import { formatDate, formatDateTime } from "@/lib/datetime";
-import { fmt, outOf } from "@/lib/report-format";
+import { evaluatorSummaryTable, fmt, outOf } from "@/lib/report-format";
 import { reportFileBase, type ReportConfig } from "@/lib/report-config";
 
 type Doc = import("jspdf").jsPDF;
@@ -851,21 +851,20 @@ function evaluatorSignature(
     // detailed marks.
     y = rd.newPage("portrait");
     y = rd.heading(y, `Evaluator summary — ${evaluator.judgeName}`, 9);
+    const evalSummary = evaluatorSummaryTable(
+      evaluator,
+      bundle.rounds.map((r) => r.name),
+    );
     y = table({
       startY: y,
-      head: [["Team", "Team name", "Maximum marks", "Marks given"]],
-      body: [
-        ...evaluator.summary.map((s) => [
-          s.teamCode,
-          s.teamName,
-          fmt(s.maxMarks),
-          fmt(s.given),
-        ]),
-        ["TOTAL", "", fmt(evaluator.totalMax), fmt(evaluator.totalGiven)],
-      ],
+      head: [evalSummary.head],
+      body: evalSummary.body,
       fontSize: 8.5,
       emphasise: [evaluator.summary.length],
-      columnStyles: { 0: { cellWidth: 16 }, ...numeric(2, 2) },
+      columnStyles: {
+        0: { cellWidth: 16 },
+        ...numeric(2, evalSummary.head.length - 2),
+      },
     });
 
     y = evaluatorSignature(rd, doc, y, evaluator.judgeName);

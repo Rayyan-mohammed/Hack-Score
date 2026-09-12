@@ -336,6 +336,13 @@ export function ReportWorkspace({ bundle }: { bundle: ReportBundle }) {
                 Download Excel
               </Button>
             </a>
+            <a
+              href={`/admin/leaderboard/report/word?h=${bundle.hackathon.id}`}
+            >
+              <Button type="button" variant="outline" className="w-full">
+                Download Word
+              </Button>
+            </a>
             <a href="#report-preview" className="sm:ml-auto">
               <Button type="button" variant="ghost" className="w-full">
                 Preview report ↓
