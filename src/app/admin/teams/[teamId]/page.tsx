@@ -188,9 +188,9 @@ export default async function TeamViewPage({
 
         <Card>
           <CardHeader>
-            <CardTitle>
-              Members ({roster.length === 0 ? "none listed" : roster.length})
-            </CardTitle>
+            {/* Counts the leader, who is listed below as Member 1 — so this
+                matches both the roster underneath and "Team size" above. */}
+            <CardTitle>Members ({teamSize})</CardTitle>
           </CardHeader>
           <CardContent className="pt-2">
             <div className="flex flex-col gap-1 border-b border-border/60 py-2.5 sm:flex-row sm:items-baseline sm:gap-4">
