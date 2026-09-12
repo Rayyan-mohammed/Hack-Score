@@ -138,6 +138,11 @@ export default async function TeamsPage({
                         </TD>
                         <TD className="text-right">
                           <div className="flex items-center justify-end gap-1">
+                            <Link href={`/admin/teams/${t.id}`}>
+                              <Button variant="ghost" size="sm">
+                                View
+                              </Button>
+                            </Link>
                             <Link href={`/admin/teams/${t.id}/edit`}>
                               <Button variant="ghost" size="sm">
                                 Edit
