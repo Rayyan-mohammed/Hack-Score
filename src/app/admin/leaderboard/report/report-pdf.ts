@@ -761,6 +761,49 @@ export async function generateReportPdf(bundle: ReportBundle): Promise<void> {
     },
   });
 
+/**
+ * Signing strip under an evaluator's own summary: the evaluator confirms, in
+ * ink, that the marks printed directly above are the marks they awarded.
+ * Kept whole — if it will not fit under the table it moves to the next page
+ * rather than splitting the rule from its caption.
+ */
+function evaluatorSignature(
+  rd: ReportDoc,
+  doc: Doc,
+  y: number,
+  judgeName: string,
+): number {
+  const boxW = pageWidth(doc) - 2 * MARGIN;
+  let next = rd.space(y, 34);
+  next += 6;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(...SOFT);
+  doc.text(
+    "I confirm the marks recorded above are those I awarded.",
+    MARGIN,
+    next,
+  );
+
+  const lineY = next + 16;
+  const sigW = 70;
+  const dateX = MARGIN + boxW - 52;
+
+  doc.setDrawColor(...RULE);
+  doc.setLineWidth(0.3);
+  doc.line(MARGIN, lineY, MARGIN + sigW, lineY);
+  doc.line(dateX, lineY, dateX + 52, lineY);
+
+  doc.setFontSize(8);
+  doc.setTextColor(...SOFT);
+  doc.text(`Signature — ${judgeName}`, MARGIN, lineY + 4);
+  doc.text("Date", dateX, lineY + 4);
+  doc.setTextColor(...INK);
+
+  return lineY + 10;
+}
+
   // =========================================================================
   // LEVEL 3 — full audit trail
   // =========================================================================
@@ -779,8 +822,10 @@ export async function generateReportPdf(bundle: ReportBundle): Promise<void> {
   if (bundle.level3.byEvaluator.length === 0)
     y = rd.paragraph(y, "No submitted evaluations were found for this event.");
 
-  for (const evaluator of bundle.level3.byEvaluator) {
-    y = rd.space(y, 60);
+  for (const [index, evaluator] of bundle.level3.byEvaluator.entries()) {
+    // Each evaluator starts on a fresh page, so their marks and the signature
+    // that attests to them are never split across two evaluators' pages.
+    y = index === 0 ? rd.space(y, 60) : rd.newPage("portrait");
     y = rd.heading(
       y,
       `Evaluator: ${evaluator.judgeName}${evaluator.email ? `  (${evaluator.email})` : ""}`,
@@ -819,6 +864,8 @@ export async function generateReportPdf(bundle: ReportBundle): Promise<void> {
       emphasise: [evaluator.summary.length],
       columnStyles: { 0: { cellWidth: 16 }, ...numeric(2, 2) },
     });
+
+    y = evaluatorSignature(rd, doc, y, evaluator.judgeName);
   }
 
   // --- 3.2 team-wise -------------------------------------------------------
