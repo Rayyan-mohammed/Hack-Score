@@ -51,6 +51,12 @@ LINE_LEFT = 600               # safe cut either side of the sentence
 LINE_RIGHT = 4700
 
 
+def printed_name(raw: str) -> str:
+    """Capitals with no full stops: "MD. Rayyan" -> "MD RAYYAN", "G.Vikram" ->
+    "G VIKRAM". The dot becomes a space so initials never touch the surname."""
+    return re.sub(r"\s+", " ", raw.replace(".", " ")).strip().upper()
+
+
 def fit_font(path: Path, cap_height: int) -> ImageFont.FreeTypeFont:
     """Largest size whose capitals measure `cap_height` tall.
 
@@ -112,7 +118,7 @@ def render(team_name: str, person_name: str) -> Image.Image:
     img = Image.open(TEMPLATE).convert("RGB")
 
     # 1. The participant's name, always in capitals.
-    name = person_name.strip().upper()
+    name = printed_name(person_name)
     name_font = fit_font(FONT_REGULAR, NAME_CAP_HEIGHT)
     # "KUCHURU SAI KRISHNA REDDY" is far wider than "[STUDENT NAME]" was, so
     # step the size down until it fits the line rather than the margins.
@@ -125,7 +131,7 @@ def render(team_name: str, person_name: str) -> Image.Image:
     #    as the designer set them; only the placeholder run is re-typeset.
     # Capitals, as the template sets it — and EB Garamond's small x-height
     # makes a mixed-case name look undersized beside the words around it.
-    team = team_name.strip().upper()
+    team = printed_name(team_name)
     team_font = fit_font(FONT_BOLD, TEAM_CAP_HEIGHT)
     bbox = team_font.getbbox(team)
     new_width = bbox[2] - bbox[0]
@@ -164,7 +170,7 @@ def main() -> None:
 
     for i, person in enumerate(people, start=1):
         img = render(team_name, person)
-        path = out_dir / f"{i:02d}_{safe(person.upper())}.png"
+        path = out_dir / f"{i:02d}_{safe(printed_name(person))}.png"
         img.save(path, optimize=True)
         print(f"  {path.relative_to(ROOT)}")
 

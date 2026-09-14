@@ -44,3 +44,9 @@ GIT_RULES.md
 
 # Generated certificates (large PNGs, rebuilt from the template on demand)
 /certificates/
+
+# Local email previews (contain private result links)
+/email-preview/
+
+# Python bytecode
+__pycache__/

@@ -26,6 +26,8 @@ export type PublicTeamResult =
   | { status: "unpublished"; hackathonName: string }
   | {
       status: "ok";
+      /** True when an admin is looking before the results are published. */
+      preview: boolean;
       hackathon: {
         name: string;
         venue: string | null;
@@ -37,6 +39,8 @@ export type PublicTeamResult =
         name: string;
         track: string | null;
         college: string | null;
+        /** The team leader — person 1 on the team, and on its certificates. */
+        leaderName: string | null;
         members: string[];
       };
       rank: number;
@@ -49,8 +53,14 @@ export type PublicTeamResult =
 
 const AWARDS = ["Winner", "Runner-up", "Second runner-up"] as const;
 
+/**
+ * `allowUnpublished` lets an admin see a team's page before results go out,
+ * exactly as the team will. Pass it only after checking the viewer is an
+ * admin — for everyone else an unpublished event stays hidden.
+ */
 export async function getPublicTeamResult(
   token: string,
+  { allowUnpublished = false }: { allowUnpublished?: boolean } = {},
 ): Promise<PublicTeamResult> {
   // The service role is required to read past RLS for an anonymous visitor.
   if (!process.env.SUPABASE_SECRET_KEY) {
@@ -63,7 +73,7 @@ export async function getPublicTeamResult(
 
     const { data: team, error: teamErr } = await admin
       .from("teams")
-      .select("id, team_code, name, track, college, hackathon_id")
+      .select("id, team_code, name, track, college, hackathon_id, team_leader_name")
       .eq("result_token", token)
       .is("deleted_at", null)
       .maybeSingle();
@@ -87,7 +97,7 @@ export async function getPublicTeamResult(
       return { status: "unavailable" };
     }
     if (!hackathon) return { status: "not_found" };
-    if (!hackathon.results_published)
+    if (!hackathon.results_published && !allowUnpublished)
       return { status: "unpublished", hackathonName: hackathon.name };
 
     // Full standings (needed for this team's rank), then narrow to this team.
@@ -104,7 +114,12 @@ export async function getPublicTeamResult(
           .eq("hackathon_id", team.hackathon_id)
           .is("deleted_at", null)
           .order("sort_order", { ascending: true }),
-        admin.from("team_members").select("name").eq("team_id", team.id),
+        // In the order the team listed them, so certificates keep that order.
+        admin
+          .from("team_members")
+          .select("name")
+          .eq("team_id", team.id)
+          .order("id", { ascending: true }),
       ]);
 
     const teams = (teamRows as TeamRow[]) ?? [];
@@ -158,6 +173,7 @@ export async function getPublicTeamResult(
 
     return {
       status: "ok",
+      preview: !hackathon.results_published,
       hackathon: {
         name: hackathon.name,
         venue: hackathon.venue,
@@ -169,6 +185,7 @@ export async function getPublicTeamResult(
         name: team.name,
         track: team.track,
         college: team.college,
+        leaderName: team.team_leader_name ?? null,
         members: (members ?? []).map((m) => m.name),
       },
       rank,

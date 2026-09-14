@@ -104,8 +104,18 @@ export async function publishResultsAndEmail(
 
   let evals: EvalRow[] = [];
   const maxCriterion: Record<string, number> = {};
+  // Marks available per round — the sum of its rubric criteria — so the email
+  // can show "48.3 / 50" and draw each round's progress bar.
+  const roundMax = new Map<string, number>();
   const feedbackByTeam = new Map<string, string[]>();
   if (roundIds.length) {
+    const { data: criteria } = await supabase
+      .from("rubric_criteria")
+      .select("round_id, max_marks")
+      .in("round_id", roundIds);
+    for (const c of criteria ?? [])
+      roundMax.set(c.round_id, (roundMax.get(c.round_id) ?? 0) + Number(c.max_marks));
+
     const { data: e } = await supabase
       .from("evaluations")
       .select("id, round_id, team_id, total_score, status, comments")
@@ -165,9 +175,13 @@ export async function publishResultsAndEmail(
       rank,
       totalTeams: teams.length,
       overall,
+      overallMax:
+        rounds.reduce((sum, r) => sum + (roundMax.get(r.id) ?? 0), 0) ||
+        undefined,
       rounds: rounds.map((r) => ({
         name: r.name,
         score: round1(s.roundAverages[r.id] ?? 0),
+        maxMarks: roundMax.get(r.id) || undefined,
       })),
       feedback: feedbackByTeam.get(team.id) ?? [],
       resultsUrl,

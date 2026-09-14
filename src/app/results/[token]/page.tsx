@@ -4,6 +4,8 @@ import { Brand } from "@/components/brand";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge, RankBadge, TrackBadge } from "@/components/ui/badge";
 import { getPublicTeamResult } from "@/lib/results";
+import { getSessionUser } from "@/lib/auth";
+import { ResultsPreviewBanner } from "@/components/results-preview-banner";
 
 export default async function TeamResultPage({
   params,
@@ -11,7 +13,11 @@ export default async function TeamResultPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const result = await getPublicTeamResult(token);
+  // An admin may look before results are published; nobody else can.
+  const { profile } = await getSessionUser();
+  const result = await getPublicTeamResult(token, {
+    allowUnpublished: profile?.role === "admin",
+  });
 
   if (result.status === "not_found") notFound();
 
@@ -20,6 +26,8 @@ export default async function TeamResultPage({
       <div className="mb-8 flex justify-center">
         <Brand size="lg" />
       </div>
+
+      {result.status === "ok" && result.preview && <ResultsPreviewBanner />}
 
       {result.status === "unavailable" ? (
         <Card>
@@ -126,7 +134,7 @@ export default async function TeamResultPage({
               href={`/results/${token}/certificate`}
               className="inline-flex h-11 items-center rounded-xl bg-gradient-accent px-6 text-sm font-medium text-white shadow-glow-soft transition-all hover:brightness-110"
             >
-              View certificate
+              View certificates
             </Link>
           </div>
         </div>

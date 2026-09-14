@@ -60,7 +60,7 @@ export default async function TeamDetailPage({
                 href={`/results/${teamMeta.result_token}/certificate`}
                 className="text-sm font-medium text-violet-bright hover:text-cyan-bright"
               >
-                Certificate ↗
+                Certificates ↗
               </Link>
             </div>
           </CardContent>
