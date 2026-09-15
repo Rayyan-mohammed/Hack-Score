@@ -46,7 +46,17 @@ export type PublicTeamResult =
       rank: number;
       totalTeams: number;
       overall: number;
-      rounds: { name: string; score: number }[];
+      rounds: {
+        name: string;
+        score: number;
+        /** Marks available in the round — the sum of its criteria. */
+        maxMarks: number;
+        /** How many evaluators' submitted marks the averages come from. */
+        evaluators: number;
+        /** Each rubric criterion, averaged across those evaluators. No judge
+         *  is named: the team sees what it scored, not who gave it. */
+        criteria: { name: string; score: number; maxMarks: number }[];
+      }[];
       feedback: string[];
       award: "Winner" | "Runner-up" | "Second runner-up" | "Participant";
     };
@@ -129,8 +139,25 @@ export async function getPublicTeamResult(
     let evals: EvalRow[] = [];
     const maxCriterion: Record<string, number> = {};
     const feedback: string[] = [];
+    // This team's own marks, per criterion, from submitted evaluations only.
+    const teamScores = new Map<string, number[]>();
+    const teamEvaluatorsByRound = new Map<string, number>();
+    let criteriaRows: {
+      id: string;
+      round_id: string;
+      name: string;
+      max_marks: number;
+      sort_order: number;
+    }[] = [];
 
     if (roundIds.length) {
+      const { data: criteria } = await admin
+        .from("rubric_criteria")
+        .select("id, round_id, name, max_marks, sort_order")
+        .in("round_id", roundIds)
+        .order("sort_order", { ascending: true });
+      criteriaRows = (criteria as typeof criteriaRows) ?? [];
+
       const { data: e } = await admin
         .from("evaluations")
         .select("id, round_id, team_id, total_score, status, comments")
@@ -143,20 +170,30 @@ export async function getPublicTeamResult(
       for (const ev of rows) {
         if (ev.status !== "submitted") continue;
         submittedIds.set(ev.id, ev.team_id);
-        if (ev.team_id === team.id && ev.comments?.trim())
-          feedback.push(ev.comments.trim());
+        if (ev.team_id === team.id) {
+          teamEvaluatorsByRound.set(
+            ev.round_id,
+            (teamEvaluatorsByRound.get(ev.round_id) ?? 0) + 1,
+          );
+          if (ev.comments?.trim()) feedback.push(ev.comments.trim());
+        }
       }
 
       const ids = [...submittedIds.keys()];
       if (ids.length) {
         const { data: scores } = await admin
           .from("evaluation_scores")
-          .select("evaluation_id, score")
+          .select("evaluation_id, criterion_id, score")
           .in("evaluation_id", ids);
         for (const s of scores ?? []) {
           const tid = submittedIds.get(s.evaluation_id);
           if (!tid) continue;
           maxCriterion[tid] = Math.max(maxCriterion[tid] ?? 0, Number(s.score));
+          if (tid === team.id) {
+            const list = teamScores.get(s.criterion_id) ?? [];
+            list.push(Number(s.score));
+            teamScores.set(s.criterion_id, list);
+          }
         }
       }
     }
@@ -191,10 +228,30 @@ export async function getPublicTeamResult(
       rank,
       totalTeams: teams.length,
       overall: standing ? round1(standing.overall) : 0,
-      rounds: rounds.map((r) => ({
-        name: r.name,
-        score: standing ? round1(standing.roundAverages[r.id] ?? 0) : 0,
-      })),
+      rounds: rounds.map((r) => {
+        const criteria = criteriaRows.filter((c) => c.round_id === r.id);
+        return {
+          name: r.name,
+          // Two decimals, so the round equals the sum of its criteria below it
+          // and the rounds add up to the overall (48.25 + 45.75 = 94).
+          score: standing
+            ? Math.round((standing.roundAverages[r.id] ?? 0) * 100) / 100
+            : 0,
+          maxMarks: criteria.reduce((sum, c) => sum + Number(c.max_marks), 0),
+          evaluators: teamEvaluatorsByRound.get(r.id) ?? 0,
+          criteria: criteria.map((c) => {
+            const marks = teamScores.get(c.id) ?? [];
+            const average = marks.length
+              ? marks.reduce((a, b) => a + b, 0) / marks.length
+              : 0;
+            return {
+              name: c.name,
+              score: Math.round(average * 100) / 100,
+              maxMarks: Number(c.max_marks),
+            };
+          }),
+        };
+      }),
       feedback,
       award,
     };

@@ -18,7 +18,7 @@ import { stripTypeScriptTypes } from "node:module";
 const { computeStandings, round1 } = await import("../src/lib/leaderboard.ts");
 
 const TEAM = process.argv[2] ?? "AstraForge";
-const OUT = "email-preview/private-link/site";
+const OUT = process.argv[3] ?? "email-preview/private-link/site";
 
 const env = Object.fromEntries(
   readFileSync("./.env.local", "utf8").split(/\r?\n/).filter((l) => l.includes("="))
@@ -44,21 +44,30 @@ const { data: evals } = await db.from("evaluations")
   .select("id, round_id, team_id, total_score, status, comments")
   .in("round_id", rounds.map((r) => r.id));
 
+const { data: criteriaRows } = await db.from("rubric_criteria")
+  .select("id, round_id, name, max_marks, sort_order")
+  .in("round_id", rounds.map((r) => r.id)).order("sort_order", { ascending: true });
 const submitted = new Map();
 const feedback = [];
+const evaluatorsByRound = new Map();
 for (const ev of evals ?? []) {
   if (ev.status !== "submitted") continue;
   submitted.set(ev.id, ev.team_id);
-  if (ev.team_id === team.id && ev.comments?.trim()) feedback.push(ev.comments.trim());
+  if (ev.team_id === team.id) {
+    evaluatorsByRound.set(ev.round_id, (evaluatorsByRound.get(ev.round_id) ?? 0) + 1);
+    if (ev.comments?.trim()) feedback.push(ev.comments.trim());
+  }
 }
+const teamScores = new Map();
 const maxCriterion = {};
 const ids = [...submitted.keys()];
 for (let i = 0; i < ids.length; i += 200) {
-  const { data: scores } = await db.from("evaluation_scores").select("evaluation_id, score")
+  const { data: scores } = await db.from("evaluation_scores").select("evaluation_id, criterion_id, score")
     .in("evaluation_id", ids.slice(i, i + 200));
   for (const s of scores ?? []) {
     const t = submitted.get(s.evaluation_id);
     if (t) maxCriterion[t] = Math.max(maxCriterion[t] ?? 0, Number(s.score));
+    if (t === team.id) teamScores.set(s.criterion_id, [...(teamScores.get(s.criterion_id) ?? []), Number(s.score)]);
   }
 }
 const standings = computeStandings(teamRows, rounds, evals ?? [], { maxCriterion });
@@ -68,7 +77,19 @@ const rank = index + 1;
 const AWARDS = ["Winner", "Runner-up", "Second runner-up"];
 const award = standing && standing.overall > 0 && rank <= 3 ? AWARDS[rank - 1] : "Participant";
 const overall = round1(standing.overall);
-const roundScores = rounds.map((r) => ({ name: r.name, score: round1(standing.roundAverages[r.id] ?? 0) }));
+const roundScores = rounds.map((r) => {
+  const crit = criteriaRows.filter((c) => c.round_id === r.id);
+  return {
+    name: r.name,
+    score: Math.round((standing.roundAverages[r.id] ?? 0) * 100) / 100,
+    maxMarks: crit.reduce((a, c) => a + Number(c.max_marks), 0),
+    evaluators: evaluatorsByRound.get(r.id) ?? 0,
+    criteria: crit.map((c) => {
+      const m = teamScores.get(c.id) ?? [];
+      return { name: c.name, score: Math.round((m.reduce((a, b) => a + b, 0) / (m.length || 1)) * 100) / 100, maxMarks: Number(c.max_marks) };
+    }),
+  };
+});
 
 const people = [
   ...(team.team_leader_name ? [{ name: team.team_leader_name, role: "Team leader" }] : []),
@@ -134,8 +155,15 @@ const resultsBody = `<main class="mx-auto max-w-2xl px-4 py-10">${brand}
       <p class="font-display text-xl font-bold">#${rank} <span class="text-sm font-normal text-muted">of ${teamRows.length}</span></p></div></div>
     <div class="text-right"><p class="text-sm text-muted">Overall</p><p class="font-display text-3xl font-bold text-gradient-accent tabular-nums">${overall}</p></div>
   </div></div>
-  <div class="rounded-2xl border border-border bg-surface shadow-card"><div class="p-5 pb-0"><h3 class="font-display text-base font-semibold tracking-tight text-foreground">Scores by round</h3></div>
-    <div class="p-5 space-y-2">${roundScores.map((r) => `<div class="flex items-center justify-between border-b border-border/60 py-2 text-sm last:border-0"><span class="text-muted">${esc(r.name)}</span><span class="font-mono tabular-nums">${r.score}</span></div>`).join("")}</div></div>
+  ${roundScores.map((r) => `<div class="rounded-2xl border border-border bg-surface shadow-card">
+    <div class="p-5 pb-0 flex flex-wrap items-baseline justify-between gap-2"><h3 class="font-display text-base font-semibold tracking-tight text-foreground">${esc(r.name)}</h3>
+      <p class="font-display text-lg font-bold tabular-nums">${r.score}${r.maxMarks ? `<span class="text-sm font-normal text-muted"> / ${r.maxMarks}</span>` : ""}</p></div>
+    <div class="p-5 space-y-3.5">${r.criteria.map((c) => `<div>
+      <div class="flex items-baseline justify-between gap-3 text-sm"><span class="text-foreground">${esc(c.name)}</span><span class="shrink-0 font-mono tabular-nums">${c.score}<span class="text-subtle"> / ${c.maxMarks}</span></span></div>
+      <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-raised"><div class="h-full rounded-full bg-gradient-accent" style="width:${c.maxMarks ? Math.min(100, (c.score / c.maxMarks) * 100) : 0}%"></div></div>
+    </div>`).join("")}
+    ${r.evaluators ? `<p class="pt-1 text-xs text-subtle">Each mark is the average of ${r.evaluators} evaluator${r.evaluators === 1 ? "" : "s"}.</p>` : ""}</div>
+  </div>`).join("")}
   ${feedback.length ? `<div class="rounded-2xl border border-border bg-surface shadow-card"><div class="p-5 pb-0"><h3 class="font-display text-base font-semibold tracking-tight text-foreground">Judge feedback</h3></div>
     <div class="p-5 space-y-3">${feedback.map((f) => `<p class="rounded-lg bg-surface-raised/50 px-3 py-2 text-sm text-muted">${esc(f)}</p>`).join("")}</div></div>` : ""}
   <div class="flex justify-center"><a href="/certificates.html" class="inline-flex h-11 items-center rounded-xl bg-gradient-accent px-6 text-sm font-medium text-white shadow-glow-soft transition-all hover:brightness-110">View certificates</a></div>

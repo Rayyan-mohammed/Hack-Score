@@ -94,22 +94,65 @@ export default async function TeamResultPage({
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Scores by round</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {result.rounds.map((r, i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between border-b border-border/60 py-2 text-sm last:border-0"
-                >
-                  <span className="text-muted">{r.name}</span>
-                  <span className="font-mono tabular-nums">{r.score}</span>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+          {/* Round by round, criterion by criterion — each mark is the average
+              of the evaluators who scored the team, so the team can see where
+              it did well and where it lost marks. No evaluator is named. */}
+          {result.rounds.map((r, i) => (
+            <Card key={i}>
+              <CardHeader className="flex flex-wrap items-baseline justify-between gap-2">
+                <CardTitle>{r.name}</CardTitle>
+                <p className="font-display text-lg font-bold tabular-nums">
+                  {r.score}
+                  {r.maxMarks > 0 && (
+                    <span className="text-sm font-normal text-muted">
+                      {" "}
+                      / {r.maxMarks}
+                    </span>
+                  )}
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-3.5">
+                {r.criteria.length === 0 ? (
+                  <p className="text-sm text-muted">
+                    No scoring criteria were recorded for this round.
+                  </p>
+                ) : (
+                  r.criteria.map((c, j) => {
+                    const pct =
+                      c.maxMarks > 0
+                        ? Math.min(100, Math.max(0, (c.score / c.maxMarks) * 100))
+                        : 0;
+                    return (
+                      <div key={j}>
+                        <div className="flex items-baseline justify-between gap-3 text-sm">
+                          <span className="text-foreground">{c.name}</span>
+                          <span className="shrink-0 font-mono tabular-nums">
+                            {c.score}
+                            <span className="text-subtle"> / {c.maxMarks}</span>
+                          </span>
+                        </div>
+                        <div
+                          className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-raised"
+                          role="presentation"
+                        >
+                          <div
+                            className="h-full rounded-full bg-gradient-accent"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+                {r.evaluators > 0 && (
+                  <p className="pt-1 text-xs text-subtle">
+                    Each mark is the average of {r.evaluators} evaluator
+                    {r.evaluators === 1 ? "" : "s"}.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          ))}
 
           {result.feedback.length > 0 && (
             <Card>
